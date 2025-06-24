@@ -1,0 +1,714 @@
+/* Core Tailwind Directives */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+  Define CSS Variables for Light Theme
+  These are derived directly from your previously provided dashboard.css
+  and farmer.css root variables.
+*/
+:root {
+  /* Color Palette */
+  --primary-color: #3498db; /* Blue */
+  --secondary-color: #34495e; /* Darker blue/grey */
+  --accent-color: #2ecc71; /* Green */
+  --warning-color: #f39c12; /* Orange */
+  --danger-color: #e74c3c; /* Red */
+  --text-color: #555e6c; /* General body text */
+  --light-text-color: #7f8c8d; /* Lighter text */
+  --background-color: #f3f7f9; /* Overall light background */
+  --sidebarbackground-color: white; /* Sidebar background */
+  --card-background: #ffffff; /* Background for cards, modals */
+  --border-color: #e6e9ed; /* Light grey for borders */
+
+  /* Shadows (using rgba for compatibility with variable application) */
+  --shadow-light: rgba(0, 0, 0, 0.04);
+  --shadow-medium: rgba(0, 0, 0, 0.08);
+  --shadow-strong: rgba(0, 0, 0, 0.1);
+
+  /* Layout Dimensions */
+  --header-height: 70px; /* Define header height as a variable */
+  --sidebar-width: 250px;
+  --sidebar-width-collapsed: 70px;
+
+  /* Linear Gradient Colors for Light Theme */
+  --gradient-primary: linear-gradient(135deg, #3498db, #2980b9);
+  --gradient-secondary: linear-gradient(135deg, #34495e, #2c3e50);
+  --gradient-accent: linear-gradient(135deg, #2ecc71, #27ae60);
+  --gradient-warning: linear-gradient(135deg, #f39c12, #e67e22);
+  --gradient-danger: linear-gradient(135deg, #e74c3c, #c0392b);
+  --gradient-card: linear-gradient(135deg, #ffffff, #fdfdfd);
+  --gradient-background: linear-gradient(135deg, #f3f7f9, #e9eff2);
+  --gradient-text-color: linear-gradient(135deg, #555e6c, #3d4a5c);
+  --gradient-light-text-color: linear-gradient(135deg, #7f8c8d, #6c7a89);
+}
+
+/*
+  Dark Theme Variables
+  These are applied when the 'dark' class is present on the html element.
+*/
+html.dark {
+  --primary-color: #66b3ff;
+  --secondary-color: #e2e8f0; /* Light text for dark background headings */
+  --accent-color: #48bb78;
+  --warning-color: #f6ad55;
+  --danger-color: #fc8181;
+  --text-color: #a0aec0; /* Lighter text for dark background */
+  --light-text-color: #718096;
+  --background-color: #2d3748;
+  --sidebarbackground-color: #2d3748;
+  --card-background: #1a202c;
+  --border-color: #4a5568;
+  --shadow-light: rgba(0, 0, 0, 0.2);
+  --shadow-medium: rgba(0, 0, 0, 0.3);
+  --shadow-strong: rgba(0, 0, 0, 0.4);
+
+  /* Linear Gradient Colors for Dark Theme */
+  --gradient-primary: linear-gradient(135deg, #66b3ff, #3388ff);
+  --gradient-secondary: linear-gradient(135deg, #66b3ff, #3388ff);
+  --gradient-accent: linear-gradient(135deg, #48bb78, #38a169);
+  --gradient-warning: linear-gradient(135deg, #f6ad55, #ed8936);
+  --gradient-danger: linear-gradient(135deg, #fc8181, #e53e3e);
+  --gradient-card: linear-gradient(135deg, #1a202c, #2d3748);
+  --gradient-background: linear-gradient(135deg, #2d3748, #1a202c);
+  --gradient-text-color: linear-gradient(135deg, #a0aec0, #718096);
+  --gradient-light-text-color: linear-gradient(135deg, #718096, #4a5568);
+}
+
+
+/* Universal Box-Sizing and Font - Ensure Poppins is loaded */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: 'Poppins', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  scroll-behavior: smooth;
+  /* Apply transitions globally for smooth theme changes and hover effects */
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease, box-shadow 0.2s ease-in-out, transform 0.2s ease-in-out;
+}
+
+/* Custom scrollbar (if not hiding globally) */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background-color: var(--border-color); /* Matches border color for subtlety */
+  border-radius: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background-color: transparent;
+}
+
+/* Firefox Invisible Scrollbar for all scrollable elements */
+*::-webkit-scrollbar {
+  display: none; /* For Chrome, Safari, Opera */
+}
+
+
+/*
+  Custom CSS Rules adapted from your original dashboard.css and farmer.css.
+  These are now directly within index.css and use the CSS variables for theming.
+  They are placed after Tailwind utilities to ensure they can override defaults.
+*/
+
+/* General Body and Container */
+body {
+  background: var(--gradient-background); /* Apply gradient from variable */
+  color: var(--text-color);
+  line-height: 1.6;
+  overflow-x: hidden;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Header Styling (adapted from dashboard.css) */
+.dashboard-header-custom {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 20px;
+  background: var(--gradient-card);
+  border-bottom: 1px solid var(--border-color);
+  box-shadow: 0 4px 15px var(--shadow-medium);
+  height: var(--header-height); /* Set height using variable */
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.header-logo-custom {
+  height: 40px;
+  border-radius: 8px;
+  object-fit: cover;
+  box-shadow: 0 2px 8px var(--shadow-light);
+}
+
+.dashboard-title-custom {
+  font-size: 1.8em;
+  font-weight: 600;
+  color: var(--secondary-color);
+  margin: 0;
+  letter-spacing: -0.02em;
+}
+
+.menu-icon-custom {
+  font-size: 28px;
+  cursor: pointer;
+  color: var(--primary-color);
+  padding: 8px;
+  border-radius: 50%;
+  transition: background-color 0.2s ease, transform 0.2s ease;
+}
+
+.menu-icon-custom:hover {
+  background-color: var(--background-color);
+  transform: scale(1.1);
+}
+
+.searchbar-custom {
+  display: flex;
+  align-items: center;
+  background-color: var(--background-color);
+  border-radius: 10px;
+  padding: 8px 15px;
+  flex-grow: 0.5;
+  max-width: 300px;
+  border: 1px solid var(--border-color);
+  box-shadow: inset 0 1px 4px var(--shadow-light);
+  transition: all 0.3s ease;
+}
+
+.searchbar-custom:focus-within {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2), inset 0 1px 4px var(--shadow-medium);
+}
+
+.searchbar-custom input {
+  border: none;
+  background: transparent;
+  outline: none;
+  flex-grow: 1;
+  font-size: 0.95em;
+  color: var(--text-color);
+  padding-left: 5px;
+}
+
+.searchbar-custom input::placeholder {
+  color: var(--light-text-color);
+}
+
+.header-action-icon-custom {
+  font-size: 24px;
+  color: var(--primary-color);
+  cursor: pointer;
+  padding: 3px;
+  border-radius: 50%;
+  transition: background-color 0.2s ease, transform 0.2s ease;
+  position: relative;
+}
+
+.header-action-icon-custom:hover {
+  background-color: var(--background-color);
+  transform: scale(1.1);
+}
+
+.notification-badge-custom {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  background: var(--gradient-danger);
+  color: white;
+  font-size: 0.5em;
+  border-radius: 50%;
+  padding: 3px 7px;
+  min-width: 20px;
+  text-align: center;
+  pointer-events: none;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+.notification-dropdown-custom,
+.language-dropdown-custom .dropdown-menu-custom {
+  position: absolute;
+  top: 60px;
+  right: 0;
+  background: var(--gradient-card);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  box-shadow: 0 8px 25px var(--shadow-strong);
+  min-width: 280px;
+  z-index: 200;
+  display: none;
+  padding: 15px 0;
+  opacity: 0;
+  transform: translateY(10px);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  pointer-events: none;
+}
+
+.notification-dropdown-custom.active,
+.language-dropdown-custom .dropdown-menu-custom.active {
+  display: block;
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: all;
+}
+
+.notification-dropdown-custom h4 {
+  font-size: 1.1em;
+  color: var(--secondary-color);
+  padding: 10px 20px;
+  border-bottom: 1px solid var(--border-color);
+  margin-bottom: 15px;
+  font-weight: 600;
+}
+
+.notification-dropdown-custom ul {
+  list-style: none;
+  padding: 0;
+  max-height: 250px;
+  overflow-y: auto;
+}
+
+.notification-dropdown-custom li {
+  padding: 12px 20px;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  font-size: 0.95em;
+  color: var(--text-color);
+  border-bottom: 1px dashed var(--border-color);
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.notification-dropdown-custom li:hover {
+  background-color: var(--background-color);
+}
+
+.notification-dropdown-custom .view-all-notifications-custom {
+  display: block;
+  width: calc(100% - 40px);
+  margin: 15px auto 0;
+  padding: 10px 15px;
+  background: var(--gradient-primary);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.95em;
+  text-align: center;
+  box-shadow: 0 2px 8px var(--shadow-medium);
+  transition: background-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.notification-dropdown-custom .view-all-notifications-custom:hover {
+  background-color: #2980b9;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px var(--shadow-strong);
+}
+
+/* User Profile (adapted) */
+.user-avatar-custom {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid var(--primary-color);
+  box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.3);
+}
+
+/* Sidebar (adapted) */
+.sidebar-custom {
+  width: var(--sidebar-width);
+  background: var(--gradient-card);
+  border-right: 1px solid var(--border-color);
+  box-shadow: 2px 0 8px var(--shadow-light);
+  padding: 0;
+  flex-shrink: 0;
+  overflow-y: auto;
+  transition: width 0.3s ease;
+  scrollbar-width: none; /* For Firefox */
+  -ms-overflow-style: none; /* For Edge/IE */
+}
+
+/* For Webkit browsers, specifically hide sidebar scrollbar */
+.sidebar-custom::-webkit-scrollbar {
+  display: none;
+}
+
+.sidebar-custom.sidebar-collapsed {
+  width: var(--sidebar-width-collapsed);
+}
+
+/* New style for sidebar's top logo/title section to align with header */
+.sidebar-header-top {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: var(--header-height);
+  margin-bottom: 0;
+  border-bottom: 1px solid var(--border-color);
+  padding: 0;
+  box-shadow: 0 4px 10px var(--shadow-light);
+}
+
+/* Ensure the image fills the space without adding extra padding */
+.sidebar-header-top img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  padding: 0;
+}
+
+.sidebar-menu-item-custom {
+  display: flex;
+  align-items: center;
+  gap: 0; /* Keep this at 0 for flex container */
+  width: calc(100% - 20px);
+  padding: 12px 15px;
+  border-radius: 8px;
+  margin: 0 auto;
+  margin-bottom: 5px;
+  background-color: var(--sidebarbackground-color);
+  color: var(--text-color);
+  cursor: pointer;
+  font-weight: 500;
+  transition: background-color 0.2s ease, color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.sidebar-menu-item-custom svg { /* Targeting the Lucide icon directly */
+  flex-shrink: 0; /* Ensure icon doesn't shrink */
+  margin-right: -4px; /* **<<<<<<<<<<<<<<<<<< KEY CHANGE HERE** */
+}
+
+.sidebar-menu-item-custom .menu-text-custom {
+  /* Removed previous margin-left, relying on icon's negative margin-right */
+  white-space: nowrap; /* Prevent text wrapping */
+  flex-grow: 1; /* Allow text to take remaining space */
+}
+
+
+.sidebar-menu-item-custom:hover {
+  background-color: var(--background-color);
+  color: var(--primary-color);
+  transform: translateX(3px);
+  box-shadow: 0 2px 10px var(--shadow-medium);
+}
+
+.sidebar-menu-item-custom:hover::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 30%;
+  height: 100%;
+  background: rgba(255, 255, 255, 0.3);
+  transform: skewX(-20deg);
+  animation: shine 0.7s forwards;
+}
+
+@keyframes shine {
+  to {
+    left: 100%;
+  }
+}
+
+.sidebar-menu-item-custom.active {
+  background: var(--gradient-secondary);
+  color: white;
+  box-shadow: 0 4px 15px var(--shadow-strong);
+  transform: translateX(8px);
+}
+
+.sidebar-menu-item-custom.active .material-symbols-outlined,
+.sidebar-menu-item-custom.active .menu-text-custom {
+  color: white;
+}
+
+/* Specific styles for collapsed state (desktop) */
+.sidebar-custom.sidebar-collapsed .menu-text-custom {
+  display: none;
+}
+
+.sidebar-custom.sidebar-collapsed .sidebar-menu-item-custom {
+  width: calc(100% - 20px);
+  justify-content: center;
+  padding: 12px;
+  margin: 0 auto 5px auto;
+  border-radius: 8px;
+  transform: none;
+}
+
+
+/* Dashboard Widget Title for consistency */
+.dashboard-widget-title {
+  font-size: 1.3em;
+  color: var(--secondary-color);
+  margin-bottom: 10px;
+  font-weight: 600;
+}
+
+
+/* KPI Cards (adapted from dashboard.css) */
+.kpi-cards-custom {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 25px;
+  margin-bottom: 0;
+}
+
+.kpi-card-custom {
+  background: var(--gradient-card);
+  border-radius: 12px;
+  padding: 25px;
+  box-shadow: 0 6px 20px var(--shadow-medium);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 180px;
+  border: 1px solid var(--border-color);
+  transition: all 0.3s ease;
+  overflow: hidden;
+  position: relative;
+}
+
+.kpi-card-custom:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 30px var(--shadow-strong);
+}
+
+.kpi-card-custom::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 0;
+  height: 0;
+  background: radial-gradient(circle at center, rgba(255, 255, 255, 0.15) 0%, transparent 70%);
+  transform: scale(0);
+  transition: transform 0.5s ease;
+  z-index: 1;
+}
+
+@keyframes radialShine {
+  to {
+    background: radial-gradient(circle at center, rgba(255, 255, 255, 0) 0%, transparent 70%);
+    transform: scale(1.5);
+  }
+}
+
+.kpi-card-custom:hover::before {
+  width: 200%;
+  height: 200%;
+  transform: scale(1);
+  animation: radialShine 0.8s forwards;
+}
+
+.kpi-card-custom h3 {
+  font-size: 1.3em;
+  color: var(--secondary-color);
+  margin-bottom: 10px;
+  font-weight: 600;
+}
+
+.kpi-metric-custom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.kpi-value-custom {
+  font-size: 2.2em;
+  font-weight: 700;
+  color: var(--primary-color);
+  letter-spacing: -0.02em;
+}
+
+.kpi-trend-custom {
+  display: flex;
+  align-items: center;
+  font-size: 0.9em;
+  font-weight: 600;
+  gap: 3px;
+  padding: 3px 8px;
+  border-radius: 5px;
+  background-color: var(--background-color);
+}
+
+.kpi-trend-custom.up {
+  color: var(--accent-color);
+}
+
+.kpi-trend-custom.down {
+  color: var(--danger-color);
+}
+
+/* Action Button General Style (adapted from dashboard.css) */
+.action-button-custom {
+  background: var(--gradient-primary);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 12px 20px;
+  font-size: 1em;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 2px 8px var(--shadow-medium);
+  white-space: nowrap;
+  transition: all 0.3s ease;
+  overflow: hidden;
+  position: relative;
+}
+
+.action-button-custom:hover {
+  background-color: #2980b9;
+  box-shadow: 0 4px 15px var(--shadow-strong);
+  transform: translateY(-2px);
+}
+
+.action-button-custom::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 30%;
+  height: 100%;
+  background: rgba(255, 255, 255, 0.2);
+  transform: skewX(-20deg);
+  transition: transform 0.5s ease-out;
+}
+
+.action-button-custom:hover::before {
+  transform: translateX(100%) skewX(-20deg);
+}
+
+/* Form Actions (adapted from dashboard.css) */
+.form-actions-custom {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 25px;
+}
+
+.cancel-button-custom {
+  background-color: var(--light-text-color);
+}
+
+.cancel-button-custom:hover {
+  background-color: #6c7a89;
+}
+
+
+/* Responsive Design (adapted from dashboard.css) */
+@media (max-width: 1200px) {
+  .dashboard-title-custom {
+    font-size: 1.5em;
+  }
+  .kpi-cards-custom {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 992px) {
+  .dashboard-header-custom {
+    flex-wrap: wrap;
+    height: auto;
+    padding-bottom: 10px;
+  }
+  .header-left-custom,
+  .header-right-custom {
+    width: 100%;
+    justify-content: center;
+    margin-bottom: 10px;
+  }
+  .searchbar-custom {
+    order: 3;
+    width: 90%;
+    max-width: none;
+    margin: 10px auto;
+  }
+  .sidebar-custom {
+    width: 100%;
+    height: auto;
+    border-right: none;
+    border-bottom: 1px solid var(--border-color);
+    box-shadow: 0 2px 5px var(--shadow-light);
+    padding: 0;
+  }
+  .sidebar-custom.sidebar-collapsed {
+    width: 100%;
+  }
+  .sidebar-menu-custom {
+    display: flex;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    white-space: nowrap;
+    padding: 0 10px;
+    justify-content: flex-start;
+    border-radius: 0;
+  }
+  .sidebar-menu-item-custom {
+    flex-direction: column;
+    gap: 0px; /* Keep 0 for mobile layout */
+    padding: 10px 15px;
+    border-radius: 8px;
+    margin-right: 5px;
+    margin-bottom: 10px;
+    min-width: 100px;
+    text-align: center;
+    border-radius: 8px;
+    transform: none;
+  }
+  /* On mobile, when sidebar is "collapsed" (i.e., horizontal), we still want text */
+  @media (max-width: 992px) {
+    .sidebar-custom.sidebar-collapsed .menu-text-custom {
+      display: block;
+      margin-left: 0; /* Reset negative margin for mobile */
+    }
+    .sidebar-menu-item-custom svg { /* Reset negative margin for icons on mobile horizontal menu */
+        margin-right: 0;
+    }
+  }
+
+  .kpi-cards-custom {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .dashboard-title-custom {
+    font-size: 1.2em;
+  }
+  .header-action-icon-custom {
+    font-size: 20px;
+  }
+  .user-avatar-custom {
+    width: 30px;
+    height: 30px;
+  }
+  .searchbar-custom {
+    padding: 6px 10px;
+  }
+  .searchbar-custom input {
+    font-size: 0.85em;
+  }
+  .kpi-cards-custom {
+    grid-template-columns: 1fr;
+  }
+}
