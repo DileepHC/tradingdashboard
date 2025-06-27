@@ -4,7 +4,7 @@
  * @typedef {Object} KpiData
  * @property {string} totalProfit - Total profit in INR.
  * @property {string} monthlyProfit - Monthly profit in INR.
- * @property {string} dailyProfit - Daily profit in INR.
+ * @property {string} dailyProfit - Daily Profit in INR.
  * @property {number} totalPaidSubscribers - Total count of paid subscribers.
  * @property {number} totalDemoSubscribers - Total count of demo subscribers.
  * @property {string} monthlyRevenue - Monthly revenue in INR.
@@ -124,11 +124,11 @@ export const dashboardData = {
       labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
       data: [30000, 32000, 35000, 38000, 42000, 45000, 40000, 48000, 52000, 55000, 60000, 65000],
     },
-    subscriberSplit: {
+    subscriberSplit: { // This will be used by the new PieChart for the outer ring as default
       paid: 800,
       demo: 700,
     },
-    dailyNewUsers: {
+    dailyNewUsers: { // Kept for existing BarChart and AreaChart data structure if needed
       labels: ['Day 1', 'Day 2', 'Day 3', 'Day 4', 'Day 5', 'Day 6', 'Day 7'],
       data: [10, 15, 8, 12, 20, 18, 25],
     },
@@ -208,3 +208,174 @@ export const dashboardData = {
     passwordResetFlowEnabled: true,
   },
 };
+
+// Data for Nivo Line Chart (mockLineData)
+export const mockLineData = [
+  {
+    id: "Daily Users",
+    color: "hsl(210, 70%, 50%)",
+    data: [
+      { x: "2024-06-20", y: 10 },
+      { x: "2024-06-21", y: 15 },
+      { x: "2024-06-22", y: 8 },
+      { x: "2024-06-23", y: 12 },
+      { x: "2024-06-24", y: 20 },
+      { x: "2024-06-25", y: 18 },
+      { x: "2024-06-26", y: 25 },
+      { x: "2024-06-27", y: 22 },
+      { x: "2024-06-28", y: 28 },
+      { x: "2024-06-29", y: 30 },
+      { x: "2024-06-30", y: 25 },
+    ],
+  },
+  {
+    id: "Weekly Users",
+    color: "hsl(120, 70%, 50%)",
+    data: [
+      { x: "Week 1", y: 70 },
+      { x: "Week 2", y: 85 },
+      { x: "Week 3", y: 60 },
+      { x: "Week 4", y: 90 },
+      { x: "Week 5", y: 110 },
+      { x: "Week 6", y: 105 },
+      { x: "Week 7", y: 130 },
+      { x: "Week 8", y: 120 },
+    ],
+  },
+  {
+    id: "Monthly Users",
+    color: "hsl(0, 70%, 50%)",
+    data: [
+      { x: "Jan", y: 300 },
+      { x: "Feb", y: 320 },
+      { x: "Mar", y: 350 },
+      { x: "Apr", y: 380 },
+      { x: "May", y: 420 },
+      { x: "Jun", y: 450 },
+      { x: "Jul", y: 400 },
+      { x: "Aug", y: 480 },
+      { x: "Sep", y: 520 },
+      { x: "Oct", y: 550 },
+      { x: "Nov", y: 600 },
+      { x: "Dec", y: 650 },
+    ],
+  },
+];
+
+
+// Data for Area Chart (Visx-compatible structure)
+export const mockAreaChartData = {
+  daily: [
+    { date: '2024-01-01', value: 1000 },
+    { date: '2024-01-02', value: 1200 },
+    { date: '2024-01-03', value: 900 },
+    { date: '2024-01-04', value: 1500 },
+    { date: '2024-01-05', value: 1100 },
+    { date: '2024-01-06', value: 1800 },
+    { date: '2024-01-07', value: 1400 },
+    { date: '2024-01-08', value: 2000 },
+    { date: '2024-01-09', value: 1600 },
+    { date: '2024-01-10', value: 2200 },
+  ],
+  weekly: [
+    { date: '2024-W01', value: 7000 },
+    { date: '2024-W02', value: 8500 },
+    { date: '2024-W03', value: 6000 },
+    { date: '2024-W04', value: 9000 },
+    { date: '2024-W05', value: 11000 },
+    { date: '2024-W06', value: 10500 },
+    { date: '2024-W07', value: 13000 },
+    { date: '2024-W08', value: 12000 },
+  ],
+  monthly: [
+    { date: '2024-01', value: 30000 },
+    { date: '2024-02', value: 32000 },
+    { date: '2024-03', value: 35000 },
+    { date: '2024-04', value: 38000 },
+    { date: '2024-05', value: 42000 },
+    { date: '2024-06', value: 45000 },
+    { date: '2024-07', value: 40000 },
+    { date: '2024-08', value: 48000 },
+    { date: '2024-09', value: 52000 },
+    { date: '2024-10', value: 55000 },
+    { date: '2024-11', value: 60000 },
+    { date: '2024-12', value: 65000 },
+  ],
+};
+
+// Data for nested Pie Chart (Visx-compatible structure) - Updated for drill-down
+export const mockNestedPieData = {
+  // Initial inner segments for overall Paid/Demo
+  overallSubscribers: [
+    { label: 'Paid Subscribers', value: dashboardData.kpis.totalPaidSubscribers },
+    { label: 'Demo Subscribers', value: dashboardData.kpis.totalDemoSubscribers },
+  ],
+  // Outer segments, each with a 'breakdown' of Paid and Demo subscribers for that segment
+  outerSegments: [
+    {
+      label: 'Web Access',
+      value: Math.floor((dashboardData.kpis.totalPaidSubscribers + dashboardData.kpis.totalDemoSubscribers) * 0.5),
+      breakdown: [
+        { label: 'Paid', value: Math.floor(dashboardData.kpis.totalPaidSubscribers * 0.6) },
+        { label: 'Demo', value: Math.floor(dashboardData.kpis.totalDemoSubscribers * 0.7) },
+      ]
+    },
+    {
+      label: 'Mobile App',
+      value: Math.floor((dashboardData.kpis.totalPaidSubscribers + dashboardData.kpis.totalDemoSubscribers) * 0.3),
+      breakdown: [
+        { label: 'Paid', value: Math.floor(dashboardData.kpis.totalPaidSubscribers * 0.3) },
+        { label: 'Demo', value: Math.floor(dashboardData.kpis.totalDemoSubscribers * 0.2) },
+      ]
+    },
+    {
+      label: 'Desktop App',
+      value: Math.floor((dashboardData.kpis.totalPaidSubscribers + dashboardData.kpis.totalDemoSubscribers) * 0.2),
+      breakdown: [
+        { label: 'Paid', value: Math.floor(dashboardData.kpis.totalPaidSubscribers * 0.1) },
+        { label: 'Demo', value: Math.floor(dashboardData.kpis.totalDemoSubscribers * 0.1) },
+      ]
+    },
+  ],
+};
+
+// Data for Visx Area Chart with Brush - Updated for Revenue Over Time
+export const mockRevenueOverTimeDataForBrush = (() => {
+  const data = [];
+  const startDate = new Date('2022-01-01');
+  const endDate = new Date('2025-06-26'); // Today's date
+
+  let currentDate = new Date(startDate);
+  let baseValue = 30000; // Starting revenue similar to your monthly
+  let fluctuation = 5000; // Max fluctuation
+
+  while (currentDate <= endDate) {
+    // Simulate a general upward trend with daily fluctuations
+    const value = baseValue + Math.random() * fluctuation - (fluctuation / 2);
+    data.push({ date: new Date(currentDate), value: Math.round(value) });
+
+    // Gradually increase baseValue to simulate growth
+    baseValue += (Math.random() - 0.5) * 100; // Small daily increment/decrement
+    if (baseValue < 25000) baseValue = 25000; // Prevent going too low
+    if (baseValue > 70000) baseValue = 70000; // Prevent going too high
+
+    currentDate.setDate(currentDate.getDate() + 1); // Move to next day
+  }
+  return data;
+})();
+
+// New data for Visx Bar Chart (e.g., monthly referral commissions)
+export const mockMonthlyBarData = [
+  { month: 'Jan', commission: 2500 },
+  { month: 'Feb', commission: 3000 },
+  { month: 'Mar', commission: 2800 },
+  { month: 'Apr', commission: 3500 },
+  { month: 'May', commission: 3200 },
+  { month: 'Jun', commission: 4000 },
+  { month: 'Jul', commission: 3800 },
+  { month: 'Aug', commission: 4200 },
+  { month: 'Sep', commission: 4500 },
+  { month: 'Oct', commission: 4100 },
+  { month: 'Nov', commission: 4800 },
+  { month: 'Dec', commission: 5000 },
+];

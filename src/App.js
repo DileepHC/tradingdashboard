@@ -1,5 +1,7 @@
-// App.js
-import React, { useState, useEffect } from 'react';
+// src/App.js
+import React, { useState, useEffect, useMemo } from 'react';
+import { ThemeProvider, CssBaseline } from '@mui/material'; // Import Material-UI ThemeProvider and CssBaseline
+import { themeSettings } from './theme'; // Import your custom theme settings function
 import Header from './components/Header.jsx';
 import Sidebar from './components/Sidebar.jsx';
 import { dashboardData } from './data/mockData.js'; // Import dashboard data
@@ -23,22 +25,33 @@ import Logout from './scenes/logout/index.jsx';
 function App() {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [activeModule, setActiveModule] = useState('dashboard'); // Default to 'dashboard'
-  const [isDarkMode, setIsDarkMode] = useState(() => {
-    // Initialize dark mode from localStorage or default to false
+
+  // State for Material-UI theme mode: 'light' or 'dark'
+  const [mode, setMode] = useState(() => {
+    // Initialize mode from localStorage or default to 'dark'
     const savedTheme = localStorage.getItem('theme');
-    return savedTheme === 'dark' ? true : false;
+    return savedTheme === 'dark' ? 'dark' : 'light'; // Ensure it's 'dark' or 'light'
   });
 
-  // Effect to apply/remove dark mode class from html element
+  // Memoize the theme object to prevent unnecessary re-creations
+  const theme = useMemo(() => themeSettings(mode), [mode]);
+
+  // Function to set dark/light mode directly, to be passed as setIsDarkMode
+  const setIsDarkMode = (isDark) => {
+    setMode(isDark ? 'dark' : 'light');
+  };
+
+  // Effect to update localStorage AND toggle 'dark' class on html element
   useEffect(() => {
-    if (isDarkMode) {
+    localStorage.setItem('theme', mode);
+
+    if (mode === 'dark') {
       document.documentElement.classList.add('dark');
-      localStorage.setItem('theme', 'dark');
     } else {
       document.documentElement.classList.remove('dark');
-      localStorage.setItem('theme', 'light');
     }
-  }, [isDarkMode]);
+  }, [mode]);
+
 
   const renderContent = () => {
     switch (activeModule) {
@@ -80,22 +93,30 @@ function App() {
   };
 
   return (
-    <div className="flex h-screen overflow-hidden bg-bg-base transition-colors duration-300">
-      <Sidebar isCollapsed={isSidebarCollapsed} setActiveModule={setActiveModule} activeModule={activeModule} />
-      <div className="flex flex-col flex-1 overflow-y-auto">
-        <Header
-          isSidebarCollapsed={isSidebarCollapsed}
-          setIsSidebarCollapsed={setIsSidebarCollapsed}
-          isDarkMode={isDarkMode}
-          setIsDarkMode={setIsDarkMode}
-          userName="John Doe"
-          userAvatar="https://placehold.co/40x40/random/white?text=JD"
-        />
-        <main className="flex-1">
-          {renderContent()}
-        </main>
+    // Wrap the entire application with ThemeProvider and CssBaseline
+    <ThemeProvider theme={theme}>
+      <CssBaseline /> {/* Applies baseline CSS and theme-based styling */}
+      {/* The `dark` class on the html element (managed by useEffect)
+          will control styles from index.css.
+          The CSS variables on the body (managed by CssBaseline)
+          will control Material-UI and Nivo styles. */}
+      <div className="flex h-screen overflow-hidden bg-bg-base transition-colors duration-300">
+        <Sidebar isCollapsed={isSidebarCollapsed} setActiveModule={setActiveModule} activeModule={activeModule} />
+        <div className="flex flex-col flex-1 overflow-y-auto">
+          <Header
+            isSidebarCollapsed={isSidebarCollapsed}
+            setIsSidebarCollapsed={setIsSidebarCollapsed}
+            isDarkMode={mode === 'dark'} // Pass boolean derived from mode
+            setIsDarkMode={setIsDarkMode} // Pass the setIsDarkMode function
+            userName="John Doe"
+            userAvatar="https://placehold.co/40x40/random/white?text=JD"
+          />
+          <main className="flex-1">
+            {renderContent()}
+          </main>
+        </div>
       </div>
-    </div>
+    </ThemeProvider>
   );
 }
 

@@ -1,6 +1,5 @@
-// scenes/users/MainUsers.jsx
 import React, { useState } from 'react';
-import { Edit, Trash2, SlidersHorizontal, Download, Filter } from 'lucide-react';
+import { Edit, Trash2, SlidersHorizontal, Download, Filter, Users } from 'lucide-react';
 
 /**
  * MainUsers component displays a table of all users (paid/demo).
@@ -10,8 +9,11 @@ import { Edit, Trash2, SlidersHorizontal, Download, Filter } from 'lucide-react'
  * @param {Array<object>} props.data - Array of user data.
  */
 function MainUsers({ data = [] }) { // data here expects the list of users
+  // State for the text entered in the filter input.
   const [filterText, setFilterText] = useState('');
+  // State for sorting configuration: { key: 'columnKey', direction: 'ascending' | 'descending' }.
   const [sortConfig, setSortConfig] = useState({ key: null, direction: 'ascending' });
+  // State to control which columns are currently visible in the table.
   const [visibleColumns, setVisibleColumns] = useState({
     userId: true,
     tradingViewId: true,
@@ -21,10 +23,16 @@ function MainUsers({ data = [] }) { // data here expects the list of users
     expiryDate: true,
     remainingDays: true,
     status: true,
-    actions: true,
+    actions: true, // Actions column is typically always visible by default.
   });
+  // State to control the visibility of the column toggle dropdown.
   const [isColumnToggleOpen, setIsColumnToggleOpen] = useState(false);
 
+  /**
+   * Toggles the sorting direction for a given column key.
+   * If the same key is clicked consecutively, it alternates between ascending and descending.
+   * @param {string} key - The column key to sort the data by.
+   */
   const sortData = (key) => {
     let direction = 'ascending';
     if (sortConfig.key === key && sortConfig.direction === 'ascending') {
@@ -33,88 +41,136 @@ function MainUsers({ data = [] }) { // data here expects the list of users
     setSortConfig({ key, direction });
   };
 
+  /**
+   * Filters and sorts the provided data based on the current filter text and sort configuration.
+   * Creates a new array to avoid direct mutation of the original data prop.
+   */
   const sortedAndFilteredData = [...data]
     .filter(user =>
+      // Check if any value in the user object (converted to string and lowercase)
+      // includes the filterText (case-insensitive).
       Object.values(user).some(val =>
         String(val).toLowerCase().includes(filterText.toLowerCase())
       )
     )
     .sort((a, b) => {
+      // Apply sorting logic only if a sort key is set.
       if (sortConfig.key) {
-        const valA = String(a[sortConfig.key]).toLowerCase();
-        const valB = String(b[sortConfig.key]).toLowerCase();
+        // Convert values to lowercase strings for case-insensitive comparison.
+        // Provide a default empty string for potential null/undefined values to prevent errors.
+        const valA = String(a[sortConfig.key] || '').toLowerCase();
+        const valB = String(b[sortConfig.key] || '').toLowerCase();
 
+        // Compare values and return -1, 0, or 1 based on sort direction.
         if (valA < valB) return sortConfig.direction === 'ascending' ? -1 : 1;
         if (valA > valB) return sortConfig.direction === 'ascending' ? 1 : -1;
       }
-      return 0;
+      return 0; // Return 0 if no sorting is applied or values are equal.
     });
 
+  /**
+   * Toggles the visibility of a specific table column.
+   * @param {string} column - The key of the column to toggle (e.g., 'userId', 'phoneEmail').
+   */
   const handleColumnToggle = (column) => {
     setVisibleColumns(prev => ({
       ...prev,
-      [column]: !prev[column],
+      [column]: !prev[column], // Flip the boolean value for the given column key.
     }));
   };
 
+  /**
+   * Placeholder function for exporting table data.
+   * In a real application, this would involve converting `sortedAndFilteredData`
+   * into the specified format (e.g., CSV, XLSX, PDF) and triggering a file download.
+   * @param {string} format - The desired export format (e.g., 'xls', 'pdf').
+   */
   const handleExport = (format) => {
     console.log(`Exporting users to ${format}...`);
-    // In a real app, convert data to CSV/PDF and trigger download
+    // Example: Use a library like 'sheetjs' for Excel export or 'jspdf' for PDF.
   };
 
+  /**
+   * Placeholder function for editing a user's details.
+   * In a real application, this would typically open a modal form pre-filled with the user's data
+   * or navigate to a dedicated user edit page.
+   * @param {object} user - The user object to be edited.
+   */
   const handleEdit = (user) => {
     console.log('Edit user:', user);
-    // Open a modal or navigate to an edit form
   };
 
+  /**
+   * Placeholder function for deleting a user.
+   * In a real application, this would send a DELETE request to an API endpoint
+   * and potentially show a confirmation dialog before proceeding.
+   * @param {string} userId - The unique ID of the user to be deleted.
+   */
   const handleDelete = (userId) => {
     console.log('Delete user with ID:', userId);
-    // Send delete request to API
   };
 
+  /**
+   * Returns a sort icon (up or down arrow) based on the current sort configuration.
+   * @param {string} key - The column key for which to get the sort icon.
+   * @returns {string|null} '▲' for ascending, '▼' for descending, or null if not sorted by this key.
+   */
   const getSortIcon = (key) => {
-    if (sortConfig.key !== key) return null;
-    return sortConfig.direction === 'ascending' ? '▲' : '▼';
+    if (sortConfig.key !== key) return null; // No icon if this column is not actively sorted.
+    return sortConfig.direction === 'ascending' ? ' ▲' : ' ▼'; // Add a space for visual separation.
   };
-
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 space-y-8 bg-background-color text-text-base">
+    <div className="p-4 sm:p-6 lg:p-8 space-y-8 bg-bg-base text-text-base">
       <h2 className="text-3xl font-bold text-secondary flex items-center gap-3">
-        Main Users
+        {/* Users icon imported from lucide-react */}
+        <Users className="w-8 h-8 text-primary" /> Main Users
       </h2>
 
+      {/* Table Controls Section (Filter Input, Column Toggle, Export Buttons) */}
       <div className="kpi-card-custom overflow-x-auto">
         <div className="flex flex-col sm:flex-row justify-between items-center mb-4 p-2 gap-4">
+          {/* Filter Input */}
           <input
             type="text"
             placeholder="Filter all columns..."
             value={filterText}
             onChange={(e) => setFilterText(e.target.value)}
             className="p-2 border border-border-base rounded-md bg-bg-base text-text-base focus:ring-primary focus:border-primary outline-none flex-grow"
+            aria-label="Filter users"
           />
           <div className="flex space-x-2 relative">
+            {/* Column Toggle Button */}
             <button
               onClick={() => setIsColumnToggleOpen(!isColumnToggleOpen)}
               className="action-button-custom py-2 px-4 bg-accent flex items-center gap-2"
+              aria-expanded={isColumnToggleOpen}
+              aria-controls="column-toggle-dropdown"
             >
               <SlidersHorizontal className="w-5 h-5" /> Columns
             </button>
+            {/* Column Toggle Dropdown */}
             {isColumnToggleOpen && (
-              <div className="absolute top-full right-0 mt-2 bg-bg-card border border-border-base rounded-lg shadow-strong z-10 p-4">
+              <div
+                id="column-toggle-dropdown"
+                className="absolute top-full right-0 mt-2 bg-card-bg border border-border-base rounded-lg shadow-strong z-10 p-4 min-w-[180px]"
+              >
+                {/* Map over the keys of visibleColumns state to create checkboxes */}
                 {Object.keys(visibleColumns).map(colKey => (
-                  <label key={colKey} className="flex items-center space-x-2 text-text-base py-1">
+                  <label key={colKey} className="flex items-center space-x-2 text-text-base py-1 cursor-pointer hover:text-primary">
                     <input
                       type="checkbox"
                       checked={visibleColumns[colKey]}
                       onChange={() => handleColumnToggle(colKey)}
                       className="form-checkbox text-primary rounded"
                     />
+                    {/* Convert camelCase key to a more readable Title Case for display */}
                     <span>{colKey.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}</span>
                   </label>
                 ))}
               </div>
             )}
+            {/* Export Buttons */}
             <button
               onClick={() => handleExport('xls')}
               className="action-button-custom py-2 px-4 bg-secondary flex items-center gap-2"
@@ -130,9 +186,11 @@ function MainUsers({ data = [] }) { // data here expects the list of users
           </div>
         </div>
 
+        {/* Main Users Table */}
         <table className="min-w-full divide-y divide-border-base">
           <thead className="bg-bg-base">
             <tr>
+              {/* Table Headers: Conditionally rendered based on visibleColumns state */}
               {visibleColumns.userId && <th className="px-6 py-3 text-left text-xs font-medium text-text-light uppercase tracking-wider cursor-pointer" onClick={() => sortData('userId')}>User ID {getSortIcon('userId')}</th>}
               {visibleColumns.tradingViewId && <th className="px-6 py-3 text-left text-xs font-medium text-text-light uppercase tracking-wider cursor-pointer" onClick={() => sortData('tradingViewId')}>TradingView ID {getSortIcon('tradingViewId')}</th>}
               {visibleColumns.phoneEmail && <th className="px-6 py-3 text-left text-xs font-medium text-text-light uppercase tracking-wider cursor-pointer" onClick={() => sortData('phoneEmail')}>Phone / Email {getSortIcon('phoneEmail')}</th>}
@@ -145,8 +203,9 @@ function MainUsers({ data = [] }) { // data here expects the list of users
             </tr>
           </thead>
           <tbody className="divide-y divide-border-base">
+            {/* Map through the sorted and filtered data to render each user row */}
             {sortedAndFilteredData.map((user, index) => (
-              <tr key={user.userId || index}>
+              <tr key={user.userId || index}>{/* Use userId as key for better performance, fallback to index */}
                 {visibleColumns.userId && <td className="px-6 py-4 whitespace-nowrap text-sm text-text-base">{user.userId}</td>}
                 {visibleColumns.tradingViewId && <td className="px-6 py-4 whitespace-nowrap text-sm text-text-base">{user.tradingViewId}</td>}
                 {visibleColumns.phoneEmail && <td className="px-6 py-4 whitespace-nowrap text-sm text-text-base">{user.phoneEmail}</td>}
@@ -155,6 +214,7 @@ function MainUsers({ data = [] }) { // data here expects the list of users
                 {visibleColumns.expiryDate && <td className="px-6 py-4 whitespace-nowrap text-sm text-text-base">{user.expiryDate}</td>}
                 {visibleColumns.remainingDays && <td className="px-6 py-4 whitespace-nowrap text-sm text-text-base">{user.remainingDays}</td>}
                 {visibleColumns.status && <td className="px-6 py-4 whitespace-nowrap text-sm text-text-base">
+                  {/* Dynamic styling for status based on its value */}
                   <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
                     user.status === 'Active' ? 'bg-accent-light text-accent' : 'bg-danger-light text-danger'
                   }`}>
@@ -163,6 +223,7 @@ function MainUsers({ data = [] }) { // data here expects the list of users
                 </td>}
                 {visibleColumns.actions && (
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                    {/* Edit button with Lucide icon */}
                     <button
                       onClick={() => handleEdit(user)}
                       className="text-primary hover:text-primary-dark mr-3 transition-colors"
@@ -170,6 +231,7 @@ function MainUsers({ data = [] }) { // data here expects the list of users
                     >
                       <Edit className="w-5 h-5 inline" />
                     </button>
+                    {/* Delete button with Lucide icon */}
                     <button
                       onClick={() => handleDelete(user.userId)}
                       className="text-danger hover:text-danger-dark transition-colors"
