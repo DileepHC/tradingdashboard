@@ -1,23 +1,31 @@
 import React, { useState } from 'react';
-import { Upload, CreditCard, X, Download, RefreshCw, CheckCircle, SlidersHorizontal } from 'lucide-react';
+import { Upload, CreditCard, X, Download, RefreshCw, CheckCircle, SlidersHorizontal, Edit, Trash2, PlusCircle } from 'lucide-react';
 
 /**
  * Payments component manages payment methods, allows QR upload, and displays payment history.
  *
  * @param {object} props - Component props.
- * @param {Array<object>} props.data - Array of payment record data.
+ * @param {Array<object>} props.data - Initial array of payment record data.
  */
 function Payments({ data = [] }) {
-  // State to control the visibility of the add new payment method form modal.
-  // eslint-disable-next-line no-unused-vars
-  const [isFormOpen, setIsFormOpen] = useState(false); 
-  // State to store validation errors for the payment method form.
+  // State to manage the actual list of payment history records
+  const [paymentHistoryData, setPaymentHistoryData] = useState(data);
+
+  // States for adding/editing payment methods (for the QR upload section)
+  // isPaymentMethodFormOpen is no longer needed as the form will be always visible in its own container
+  const [editPaymentMethod, setEditPaymentMethod] = useState(null); // Stores the payment method being edited
+  const [formUpiId, setFormUpiId] = useState('');
+  const [formQrFile, setFormQrFile] = useState(null); // Stores the selected QR image file object for the form
+  const [formPaymentMethodTags, setFormPaymentMethodTags] = useState('');
   const [formErrors, setFormErrors] = useState({});
 
-  // States for the form inputs for adding new payment methods.
-  const [upiId, setUpiId] = useState('');
-  const [qrFile, setQrFile] = useState(null); // Stores the selected QR image file object
-  const [paymentMethodTags, setPaymentMethodTags] = useState(''); // Comma-separated tags for the payment method
+  // State for Delete Confirmation Modal for payment history records
+  const [showPaymentHistoryDeleteConfirm, setShowPaymentHistoryDeleteConfirm] = useState(false);
+  const [paymentHistoryToDelete, setPaymentHistoryToDelete] = useState(null); // Stores the ID of the payment history record to delete
+
+  // State for Delete Confirmation Modal for active payment methods
+  const [showPaymentMethodDeleteConfirm, setShowPaymentMethodDeleteConfirm] = useState(false);
+  const [paymentMethodToDelete, setPaymentMethodToDelete] = useState(null); // Stores the ID of the payment method to delete
 
   // State for filtering text input for the payment history table.
   const [filterText, setFilterText] = useState('');
@@ -36,73 +44,199 @@ function Payments({ data = [] }) {
   // State to control the open/close state of the column toggle dropdown for payment history.
   const [isColumnToggleOpen, setIsColumnToggleOpen] = useState(false);
 
+  // NEW STATES FOR ADD PAYMENT RECORD MODAL
+  const [isAddPaymentRecordFormOpen, setIsAddPaymentRecordFormOpen] = useState(false);
+  const [paymentRecordFormUpiId, setPaymentRecordFormUpiId] = useState('');
+  const [newPaymentRecordAmount, setNewPaymentRecordAmount] = useState('');
+  const [newPaymentRecordUser, setNewPaymentRecordUser] = useState('');
+  const [newPaymentRecordDate, setNewPaymentRecordDate] = useState(new Date().toISOString().split('T')[0]); // Default to current date
+  const [newPaymentRecordStatus, setNewPaymentRecordStatus] = useState('Completed'); // Default status
+  const [newPaymentRecordFormErrors, setNewPaymentRecordFormErrors] = useState({});
+
+
+  // Dummy state for active UPI IDs / Payment Methods
+  // In a real application, this would likely come from a backend API
+  const [activeUpiMethods, setActiveUpiMethods] = useState([
+    { id: 'upi1', upiId: 'you@bhimupi', tags: ['BHIM'], qrImageUrl: 'https://placehold.co/100x100/random/white?text=BHIM' },
+    { id: 'upi2', upiId: 'tradingdash@paytm', tags: ['Paytm', 'GPay'], qrImageUrl: 'https://placehold.co/100x100/random/white?text=Paytm' },
+  ]);
+
   /**
-   * Opens the add new payment method form modal.
-   * Resets all form fields and clears previous validation errors.
+   * Resets the payment method form fields.
    */
-  // eslint-disable-next-line no-unused-vars
-  const handleOpenForm = () => {
-    setIsFormOpen(true);
+  const resetPaymentMethodForm = () => {
+    setEditPaymentMethod(null);
+    setFormUpiId('');
+    setFormQrFile(null);
+    setFormPaymentMethodTags('');
     setFormErrors({});
-    // Reset form fields
-    setUpiId('');
-    setQrFile(null);
-    setPaymentMethodTags('');
   };
 
   /**
-   * Closes the add new payment method form modal and clears errors.
-   */
-  const handleCloseForm = () => {
-    setIsFormOpen(false);
-    setFormErrors({});
-  };
-
-  /**
-   * Validates the form fields for adding a new payment method.
+   * Validates the form fields for adding/editing a payment method.
    * Checks for required UPI ID and valid image type for QR file.
    * @returns {boolean} True if the form is valid, false otherwise.
    */
-  const validateForm = () => {
+  const validatePaymentMethodForm = () => {
     const errors = {};
-    if (!upiId.trim()) {
+    if (!formUpiId.trim()) {
       errors.upiId = 'UPI ID is required.';
     }
-    if (qrFile) {
-        const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg'];
-        if (!allowedTypes.includes(qrFile.type)) {
-            errors.qrFile = 'Only PNG/JPG images are allowed for QR.';
-        }
+    // Only validate QR file if it's a new file being uploaded or if it's required for edit
+    if (formQrFile) {
+      const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg'];
+      if (!allowedTypes.includes(formQrFile.type)) {
+        errors.qrFile = 'Only PNG/JPG images are allowed for QR.';
+      }
+    } else if (!editPaymentMethod && !formQrFile) {
+        // QR is optional for new methods for now, no error if not provided
     }
+
     setFormErrors(errors); // Update form errors state
     return Object.keys(errors).length === 0; // Return true if no errors
   };
 
   /**
    * Handles the submission of the new payment method form.
-   * Performs validation and logs the new payment method data.
-   * In a real application, this would send data (including QR image) to an API.
+   * Performs validation and adds/updates the payment method.
    * @param {Event} e - The form submission event.
    */
-  const handleFormSubmit = (e) => {
+  const handlePaymentMethodFormSubmit = (e) => {
     e.preventDefault(); // Prevent default form submission
-    if (!validateForm()) {
+    if (!validatePaymentMethodForm()) {
       return; // Stop if validation fails
     }
-    const newPaymentMethod = {
-      upiId,
-      // Create a temporary URL for QR image preview. In a real app, upload to storage and get permanent URL.
-      qrImageUrl: qrFile ? URL.createObjectURL(qrFile) : null,
-      tags: paymentMethodTags.split(',').map(tag => tag.trim()).filter(tag => tag), // Split tags by comma and trim whitespace
-      isActive: true, // Assuming newly added methods are active
-      addedDate: new Date().toISOString().split('T')[0], // Current date for added date
-    };
-    console.log('Adding New Payment Method:', newPaymentMethod);
-    // In a real application, you would send this 'newPaymentMethod' object to your backend API.
-    // If QR file is present, you would also handle its upload (e.g., to Firebase Storage, S3).
 
-    handleCloseForm(); // Close the form after successful submission
+    const newMethod = {
+      id: editPaymentMethod ? editPaymentMethod.id : `upi${Date.now()}`,
+      upiId: formUpiId,
+      tags: formPaymentMethodTags.split(',').map(tag => tag.trim()).filter(tag => tag),
+      qrImageUrl: formQrFile ? URL.createObjectURL(formQrFile) : (editPaymentMethod ? editPaymentMethod.qrImageUrl : null), // Keep old URL if no new file
+      isActive: true, // Assuming newly added/edited methods are active
+      addedDate: new Date().toISOString().split('T')[0],
+    };
+
+    if (editPaymentMethod) {
+      setActiveUpiMethods(activeUpiMethods.map(method => method.id === newMethod.id ? newMethod : method));
+      console.log('Payment Method Updated:', newMethod);
+    } else {
+      setActiveUpiMethods(prevMethods => [...prevMethods, newMethod]);
+      console.log('New Payment Method Added:', newMethod);
+    }
+
+    resetPaymentMethodForm(); // Reset the form after successful submission
   };
+
+  /**
+   * Handles editing an existing payment method by populating the form.
+   * @param {object} method - The payment method object to edit.
+   */
+  const handleEditPaymentMethod = (method) => {
+    setEditPaymentMethod(method);
+    setFormUpiId(method.upiId);
+    setFormQrFile(null); // Clear file input, user can re-upload if needed
+    setFormPaymentMethodTags(method.tags.join(', '));
+    setFormErrors({}); // Clear any previous errors
+  };
+
+
+  /**
+   * Opens the delete confirmation modal for an active payment method.
+   * @param {string} methodId - The ID of the payment method to delete.
+   */
+  const handleDeletePaymentMethodClick = (methodId) => {
+    setPaymentMethodToDelete(methodId);
+    setShowPaymentMethodDeleteConfirm(true);
+  };
+
+  /**
+   * Confirms and performs the deletion of an active payment method.
+   */
+  const confirmDeletePaymentMethod = () => {
+    setActiveUpiMethods(activeUpiMethods.filter(method => method.id !== paymentMethodToDelete));
+    console.log('Deleting payment method with ID:', paymentMethodToDelete);
+    setShowPaymentMethodDeleteConfirm(false);
+    setPaymentMethodToDelete(null);
+  };
+
+  /**
+   * Cancels the deletion process for an active payment method.
+   */
+  const cancelDeletePaymentMethod = () => {
+    setShowPaymentMethodDeleteConfirm(false);
+    setPaymentMethodToDelete(null);
+  };
+
+  /**
+   * Opens the add payment record form modal, pre-filling the UPI ID.
+   * @param {string} upiId - The UPI ID to pre-fill in the form.
+   */
+  const handleAddPaymentRecordClick = (upiId) => {
+    setIsAddPaymentRecordFormOpen(true);
+    setPaymentRecordFormUpiId(upiId);
+    setNewPaymentRecordAmount('');
+    setNewPaymentRecordUser('');
+    setNewPaymentRecordDate(new Date().toISOString().split('T')[0]); // Set current date
+    setNewPaymentRecordStatus('Completed'); // Default status
+    setNewPaymentRecordFormErrors({});
+  };
+
+  /**
+   * Closes the add payment record form modal.
+   */
+  const handleCloseAddPaymentRecordForm = () => {
+    setIsAddPaymentRecordFormOpen(false);
+    setNewPaymentRecordAmount('');
+    setNewPaymentRecordUser('');
+    setNewPaymentRecordDate(new Date().toISOString().split('T')[0]);
+    setNewPaymentRecordStatus('Completed');
+    setNewPaymentRecordFormErrors({});
+  };
+
+  /**
+   * Validates the add payment record form.
+   * @returns {boolean} True if the form is valid, false otherwise.
+   */
+  const validateAddPaymentRecordForm = () => {
+    const errors = {};
+    if (!newPaymentRecordAmount.trim() || isNaN(parseFloat(newPaymentRecordAmount)) || parseFloat(newPaymentRecordAmount) <= 0) {
+      errors.amount = 'Valid amount is required.';
+    }
+    if (!newPaymentRecordUser.trim()) {
+      errors.user = 'User name/ID is required.';
+    }
+    if (!newPaymentRecordDate) {
+      errors.date = 'Date is required.';
+    }
+    setNewPaymentRecordFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  /**
+   * Handles the submission of the add payment record form.
+   * Adds the new payment record to the payment history data.
+   * @param {Event} e - The form submission event.
+   */
+  const handleAddPaymentRecordSubmit = (e) => {
+    e.preventDefault();
+    if (!validateAddPaymentRecordForm()) {
+      return;
+    }
+
+    const newRecord = {
+      id: `pay${Date.now()}`, // Unique ID for payment record
+      upiUsed: paymentRecordFormUpiId,
+      user: newPaymentRecordUser,
+      amount: parseFloat(newPaymentRecordAmount).toFixed(2),
+      date: newPaymentRecordDate,
+      status: newPaymentRecordStatus,
+    };
+
+    setPaymentHistoryData(prevData => [...prevData, newRecord]);
+    console.log('New Payment Record Added:', newRecord);
+    handleCloseAddPaymentRecordForm();
+  };
+
 
   /**
    * Placeholder function to handle refund initiation for a payment.
@@ -125,6 +259,33 @@ function Payments({ data = [] }) {
   };
 
   /**
+   * Opens the delete confirmation modal for a payment history record.
+   * @param {string} paymentId - The ID of the payment history record to delete.
+   */
+  const handleDeletePaymentHistoryClick = (paymentId) => {
+    setPaymentHistoryToDelete(paymentId);
+    setShowPaymentHistoryDeleteConfirm(true);
+  };
+
+  /**
+   * Confirms and performs the deletion of a payment history record.
+   */
+  const confirmDeletePaymentHistory = () => {
+    setPaymentHistoryData(paymentHistoryData.filter(payment => payment.id !== paymentHistoryToDelete));
+    console.log('Deleting payment history record with ID:', paymentHistoryToDelete);
+    setShowPaymentHistoryDeleteConfirm(false);
+    setPaymentHistoryToDelete(null);
+  };
+
+  /**
+   * Cancels the deletion process for a payment history record.
+   */
+  const cancelDeletePaymentHistory = () => {
+    setShowPaymentHistoryDeleteConfirm(false);
+    setPaymentHistoryToDelete(null);
+  };
+
+  /**
    * Toggles the sorting direction for a given column key in the payment history table.
    * @param {string} key - The column key to sort by.
    */
@@ -140,7 +301,7 @@ function Payments({ data = [] }) {
    * Filters and sorts the payment history data based on current filterText and sortConfig.
    * @returns {Array<object>} The filtered and sorted array of payment records.
    */
-  const sortedAndFilteredData = [...data] // Create a shallow copy to avoid mutating original data
+  const sortedAndFilteredData = [...paymentHistoryData] // Create a shallow copy to avoid mutating original data
     .filter(payment =>
       // Check if any string value in the payment object includes the filterText (case-insensitive).
       Object.values(payment).some(val =>
@@ -160,35 +321,90 @@ function Payments({ data = [] }) {
       return 0; // No change in order if keys are equal or no sort key is set.
     });
 
-    /**
-     * Toggles the visibility of a specific column in the payment history table.
-     * @param {string} column - The key of the column to toggle.
-     */
-    const handleColumnToggle = (column) => {
-        setVisibleColumns(prev => ({
-            ...prev,
-            [column]: !prev[column], // Toggle the boolean value for the specified column.
-        }));
+  /**
+   * Toggles the visibility of a specific column in the payment history table.
+   * @param {string} column - The key of the column to toggle.
+   */
+  const handleColumnToggle = (column) => {
+    setVisibleColumns(prev => ({
+      ...prev,
+      [column]: !prev[column], // Toggle the boolean value for the specified column.
+    }));
+  };
+
+  /**
+   * Placeholder function for exporting payment history data.
+   * @param {string} format - The desired export format (e.g., 'xls', 'pdf').
+   */
+  const handleExport = (format) => {
+    let fileContent = '';
+    let fileName = '';
+    let mimeType = '';
+
+    const displayHeaders = {
+      id: 'Payment ID',
+      upiUsed: 'UPI Used',
+      user: 'User',
+      amount: 'Amount',
+      date: 'Date',
+      status: 'Status',
     };
 
-    /**
-     * Placeholder function for exporting payment history data.
-     * @param {string} format - The desired export format (e.g., 'xls', 'pdf').
-     */
-    const handleExport = (format) => {
-        console.log(`Exporting payments to ${format}...`);
-        // You'd use a library like 'sheetjs' for Excel or 'jspdf' for PDF here.
-    };
+    // Filter headers based on visible columns and map to display names
+    const headers = Object.keys(visibleColumns)
+      .filter(key => visibleColumns[key] && displayHeaders[key])
+      .map(key => displayHeaders[key])
+      .join(',');
 
-    /**
-     * Returns the sort icon (▲ for ascending, ▼ for descending) for a given column key.
-     * @param {string} key - The column key.
-     * @returns {string|null} The sort icon character or null if not sorted by this key.
-     */
-    const getSortIcon = (key) => {
-        if (sortConfig.key !== key) return null; // No icon if not sorting by this column.
-        return sortConfig.direction === 'ascending' ? ' ▲' : ' ▼'; // Add a space for better readability.
-    };
+    const rows = sortedAndFilteredData.map(row =>
+      Object.keys(visibleColumns)
+        .filter(key => visibleColumns[key] && displayHeaders[key])
+        .map(key => `"${String(row[key]).replace(/"/g, '""')}"`) // Escape double quotes
+        .join(',')
+    ).join('\n');
+
+    if (format === 'xls') {
+      fileContent = `${headers}\n${rows}`;
+      fileName = 'payment_history.csv';
+      mimeType = 'text/csv';
+      console.log('Exporting payment history to XLS (CSV format).');
+    } else if (format === 'pdf') {
+      fileContent = 'Payment History Report\n\n';
+      sortedAndFilteredData.forEach(payment => {
+        fileContent += `Payment ID: ${payment.id}\n`;
+        fileContent += `UPI Used: ${payment.upiUsed}\n`;
+        fileContent += `User: ${payment.user}\n`;
+        fileContent += `Amount: ${payment.amount}\n`;
+        fileContent += `Date: ${payment.date}\n`;
+        fileContent += `Status: ${payment.status}\n`;
+        fileContent += '--------------------\n';
+      });
+      fileName = 'payment_history_report.txt';
+      mimeType = 'text/plain';
+      console.log('Exporting payment history to PDF (text format).');
+      console.warn('Note: For full PDF generation with rich formatting, a dedicated client-side PDF library (e.g., jspdf, html2pdf) would be required.');
+    }
+
+    const blob = new Blob([fileContent], { type: mimeType });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  /**
+   * Returns the sort icon (▲ for ascending, ▼ for descending) for a given column key.
+   * @param {string} key - The column key.
+   * @returns {string|null} The sort icon character or null if not sorted by this key.
+   */
+  const getSortIcon = (key) => {
+    if (sortConfig.key !== key) return null; // No icon if not sorting by this column.
+    return sortConfig.direction === 'ascending' ? ' ▲' : ' ▼'; // Add a space for better readability.
+  };
 
 
   return (
@@ -199,25 +415,32 @@ function Payments({ data = [] }) {
 
       {/* QR Upload & Active UPI IDs Section */}
       <div className="kpi-card-custom p-6">
-        <h3 className="dashboard-widget-title mb-4">Payment Methods</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Section for Uploading New QR Code */}
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="dashboard-widget-title">Payment Methods</h3>
+          {/* Removed "Add New Method" button here as the form will be inline */}
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {/* Section for Adding/Editing New QR Code (inline form) */}
           <div className="border border-border-base rounded-lg p-4 bg-bg-base flex flex-col items-center justify-center text-center">
-            <h4 className="font-semibold text-secondary mb-2">Upload New QR Code</h4>
+            <h4 className="font-semibold text-secondary mb-2">{editPaymentMethod ? 'Edit Payment Method' : 'Add New Payment Method'}</h4>
             {/* QR Code preview area */}
             <div className="w-32 h-32 border-2 border-dashed border-border-base rounded-lg flex items-center justify-center mb-3">
-                {/* Conditionally display QR image preview or upload icon */}
-                {qrFile ? (
-                    <img src={URL.createObjectURL(qrFile)} alt="QR Preview" className="max-w-full max-h-full object-contain" />
+              {/* Conditionally display QR image preview or upload icon */}
+              {formQrFile ? (
+                <img src={URL.createObjectURL(formQrFile)} alt="QR Preview" className="max-w-full max-h-full object-contain" />
+              ) : (
+                editPaymentMethod && editPaymentMethod.qrImageUrl ? (
+                  <img src={editPaymentMethod.qrImageUrl} alt="Current QR" className="max-w-full max-h-full object-contain" />
                 ) : (
-                    <Upload className="w-10 h-10 text-text-light" />
-                )}
+                  <Upload className="w-10 h-10 text-text-light" />
+                )
+              )}
             </div>
             {/* Input for QR file upload */}
             <input
               type="file"
               accept=".png, .jpg, .jpeg"
-              onChange={(e) => setQrFile(e.target.files[0])}
+              onChange={(e) => setFormQrFile(e.target.files[0])}
               className="w-full text-text-base file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-white hover:file:bg-primary-dark cursor-pointer mb-2"
               aria-label="Upload QR code image"
             />
@@ -226,9 +449,9 @@ function Payments({ data = [] }) {
             <input
               type="text"
               placeholder="UPI ID (e.g., yourname@upi)"
-              value={upiId}
-              onChange={(e) => setUpiId(e.target.value)}
-              className="w-full p-2 border border-border-base rounded-md bg-bg-card text-text-base focus:ring-primary focus:border-primary outline-none mb-2"
+              value={formUpiId}
+              onChange={(e) => setFormUpiId(e.target.value)}
+              className={`w-full p-2 border rounded-md bg-bg-card text-text-base focus:ring-primary focus:border-primary outline-none mb-2 ${formErrors.upiId ? 'border-danger' : 'border-border-base'}`}
               aria-label="UPI ID"
             />
             {formErrors.upiId && <p className="text-danger text-sm mt-1">{formErrors.upiId}</p>} {/* UPI ID error message */}
@@ -236,24 +459,61 @@ function Payments({ data = [] }) {
             <input
               type="text"
               placeholder="Tags (e.g., GPay, Paytm, comma-separated)"
-              value={paymentMethodTags}
-              onChange={(e) => setPaymentMethodTags(e.target.value)}
+              value={formPaymentMethodTags}
+              onChange={(e) => setFormPaymentMethodTags(e.target.value)}
               className="w-full p-2 border border-border-base rounded-md bg-bg-card text-text-base focus:ring-primary focus:border-primary outline-none mb-3"
               aria-label="Payment method tags"
             />
-            {/* Button to add the new payment method */}
-            <button onClick={handleFormSubmit} className="action-button-custom w-full">Add Payment Method</button>
+            {/* Button to add/update the new payment method */}
+            <button onClick={handlePaymentMethodFormSubmit} className="action-button-custom w-full">
+              {editPaymentMethod ? 'Update Method' : 'Add Payment Method'}
+            </button>
+            {editPaymentMethod && (
+              <button onClick={resetPaymentMethodForm} className="action-button-custom cancel-button-custom mt-2 w-full">
+                Cancel Edit
+              </button>
+            )}
           </div>
 
           {/* Section for Displaying Active UPI IDs / Payment Methods */}
-          <div className="border border-border-base rounded-lg p-4 bg-bg-base">
-            <h4 className="font-semibold text-secondary mb-2">Active UPI IDs / Payment Methods</h4>
-            <ul className="space-y-2 text-text-base">
-              <li><span className="font-medium">you@bhimupi</span> (BHIM)</li>
-              <li><span className="font-medium">tradingdash@paytm</span> (Paytm, GPay)</li>
-              {/* Dummy active UPIs - In a real app, this list would be dynamically populated */}
-            </ul>
-          </div>
+          {activeUpiMethods.length > 0 ? (
+            activeUpiMethods.map(method => (
+              <div key={method.id} className="border border-border-base rounded-lg p-4 bg-bg-base flex flex-col items-center justify-center text-center relative">
+                {method.qrImageUrl && (
+                  <img src={method.qrImageUrl} alt="QR Code" className="w-24 h-24 object-contain mb-2 rounded-md" />
+                )}
+                <p className="font-semibold text-secondary mb-1">{method.upiId}</p>
+                <p className="text-sm text-text-light">{method.tags.join(', ')}</p>
+                <div className="absolute top-2 right-2 flex gap-1">
+                  <button
+                    onClick={() => handleEditPaymentMethod(method)}
+                    className="text-primary hover:text-primary-dark transition-colors p-1 rounded-md"
+                    aria-label={`Edit ${method.upiId}`}
+                  >
+                    <Edit className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => handleDeletePaymentMethodClick(method.id)}
+                    className="text-danger hover:text-danger-dark transition-colors p-1 rounded-md"
+                    aria-label={`Delete ${method.upiId}`}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+                {/* NEW: Add Payment button for this UPI ID */}
+                <button
+                  onClick={() => handleAddPaymentRecordClick(method.upiId)}
+                  className="action-button-custom mt-4 w-full"
+                >
+                  <PlusCircle className="w-5 h-5 mr-2" /> Add Payment
+                </button>
+              </div>
+            ))
+          ) : (
+            // This message is now redundant as the form is always visible
+            // <p className="text-text-light text-center col-span-full py-4">No active payment methods found. Add one!</p>
+            null
+          )}
         </div>
       </div>
 
@@ -368,6 +628,14 @@ function Payments({ data = [] }) {
                     >
                       <RefreshCw className="w-5 h-5 inline" />
                     </button>
+                    {/* Delete button for payment history record */}
+                    <button
+                      onClick={() => handleDeletePaymentHistoryClick(payment.id)}
+                      className="text-danger hover:text-danger-dark transition-colors ml-3"
+                      aria-label={`Delete payment ${payment.id}`}
+                    >
+                      <Trash2 className="w-5 h-5 inline" />
+                    </button>
                   </td>
                 )}
               </tr>
@@ -375,6 +643,165 @@ function Payments({ data = [] }) {
           </tbody>
         </table>
       </div>
+
+      {/* NEW: Add Payment Record Form Modal */}
+      {isAddPaymentRecordFormOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-card-bg rounded-lg p-8 shadow-strong max-w-md w-full relative">
+            <button
+              onClick={handleCloseAddPaymentRecordForm}
+              className="absolute top-4 right-4 text-text-light hover:text-danger transition-colors"
+              aria-label="Close form"
+            >
+              <X className="w-6 h-6" />
+            </button>
+            <h3 className="dashboard-widget-title mb-6">Add New Payment Record</h3>
+            <form onSubmit={handleAddPaymentRecordSubmit} className="space-y-4">
+              <div>
+                <label htmlFor="paymentRecordUpiId" className="block text-sm font-medium text-text-base mb-1">
+                  UPI Used
+                </label>
+                <input
+                  type="text"
+                  id="paymentRecordUpiId"
+                  value={paymentRecordFormUpiId}
+                  className="w-full p-3 border rounded-md bg-bg-base text-text-base cursor-not-allowed"
+                  readOnly
+                />
+              </div>
+              <div>
+                <label htmlFor="newPaymentRecordUser" className="block text-sm font-medium text-text-base mb-1">
+                  User <span className="text-danger">*</span>
+                </label>
+                <input
+                  type="text"
+                  id="newPaymentRecordUser"
+                  value={newPaymentRecordUser}
+                  onChange={(e) => setNewPaymentRecordUser(e.target.value)}
+                  className={`w-full p-3 border rounded-md bg-bg-base text-text-base focus:ring-primary focus:border-primary outline-none ${newPaymentRecordFormErrors.user ? 'border-danger' : 'border-border-base'}`}
+                  required
+                />
+                {newPaymentRecordFormErrors.user && <p className="text-danger text-xs mt-1">{newPaymentRecordFormErrors.user}</p>}
+              </div>
+              <div>
+                <label htmlFor="newPaymentRecordAmount" className="block text-sm font-medium text-text-base mb-1">
+                  Amount <span className="text-danger">*</span>
+                </label>
+                <input
+                  type="number"
+                  id="newPaymentRecordAmount"
+                  value={newPaymentRecordAmount}
+                  onChange={(e) => setNewPaymentRecordAmount(e.target.value)}
+                  className={`w-full p-3 border rounded-md bg-bg-base text-text-base focus:ring-primary focus:border-primary outline-none ${newPaymentRecordFormErrors.amount ? 'border-danger' : 'border-border-base'}`}
+                  step="0.01"
+                  required
+                />
+                {newPaymentRecordFormErrors.amount && <p className="text-danger text-xs mt-1">{newPaymentRecordFormErrors.amount}</p>}
+              </div>
+              <div>
+                <label htmlFor="newPaymentRecordDate" className="block text-sm font-medium text-text-base mb-1">
+                  Date <span className="text-danger">*</span>
+                </label>
+                <input
+                  type="date"
+                  id="newPaymentRecordDate"
+                  value={newPaymentRecordDate}
+                  onChange={(e) => setNewPaymentRecordDate(e.target.value)}
+                  className={`w-full p-3 border rounded-md bg-bg-base text-text-base focus:ring-primary focus:border-primary outline-none ${newPaymentRecordFormErrors.date ? 'border-danger' : 'border-border-base'}`}
+                  required
+                />
+                {newPaymentRecordFormErrors.date && <p className="text-danger text-xs mt-1">{newPaymentRecordFormErrors.date}</p>}
+              </div>
+              <div>
+                <label htmlFor="newPaymentRecordStatus" className="block text-sm font-medium text-text-base mb-1">
+                  Status
+                </label>
+                <select
+                  id="newPaymentRecordStatus"
+                  value={newPaymentRecordStatus}
+                  onChange={(e) => setNewPaymentRecordStatus(e.target.value)}
+                  className="w-full p-3 border border-border-base rounded-md bg-bg-base text-text-base focus:ring-primary focus:border-primary outline-none"
+                >
+                  <option value="Completed">Completed</option>
+                  <option value="Pending">Pending</option>
+                  <option value="Failed">Failed</option>
+                </select>
+              </div>
+              <div className="form-actions-custom flex justify-end">
+                <button type="submit" className="action-button-custom">
+                  Add Payment
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal for Payment History Record */}
+      {showPaymentHistoryDeleteConfirm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-card-bg rounded-lg p-8 shadow-strong max-w-sm w-full relative text-center">
+            <button
+              onClick={cancelDeletePaymentHistory}
+              className="absolute top-4 right-4 text-text-light hover:text-danger transition-colors"
+              aria-label="Close"
+            >
+              <X className="w-6 h-6" />
+            </button>
+            <h3 className="dashboard-widget-title mb-4">Confirm Deletion</h3>
+            <p className="text-text-base mb-6">
+              Are you sure you want to delete payment record ID: <span className="font-semibold text-danger">{paymentHistoryToDelete}</span>? This action cannot be undone.
+            </p>
+            <div className="flex justify-center gap-4">
+              <button
+                onClick={confirmDeletePaymentHistory}
+                className="action-button-custom bg-danger hover:bg-danger-dark"
+              >
+                Delete
+              </button>
+              <button
+                onClick={cancelDeletePaymentHistory}
+                className="action-button-custom cancel-button-custom"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal for Active Payment Method */}
+      {showPaymentMethodDeleteConfirm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-card-bg rounded-lg p-8 shadow-strong max-w-sm w-full relative text-center">
+            <button
+              onClick={cancelDeletePaymentMethod}
+              className="absolute top-4 right-4 text-text-light hover:text-danger transition-colors"
+              aria-label="Close"
+            >
+              <X className="w-6 h-6" />
+            </button>
+            <h3 className="dashboard-widget-title mb-4">Confirm Method Deletion</h3>
+            <p className="text-text-base mb-6">
+              Are you sure you want to delete this payment method? This action cannot be undone.
+            </p>
+            <div className="flex justify-center gap-4">
+              <button
+                onClick={confirmDeletePaymentMethod}
+                className="action-button-custom bg-danger hover:bg-danger-dark"
+              >
+                Delete
+              </button>
+              <button
+                onClick={cancelDeletePaymentMethod}
+                className="action-button-custom cancel-button-custom"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

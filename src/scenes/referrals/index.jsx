@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Filter, SlidersHorizontal, Download, Trash2, Link } from 'lucide-react';
+import { SlidersHorizontal, Download, Trash2, Link, PlusCircle, Edit, X } from 'lucide-react'; // Removed Filter
 
 /**
  * ReferralList component displays a table of all referral IDs and associated data.
@@ -9,6 +9,9 @@ import { Filter, SlidersHorizontal, Download, Trash2, Link } from 'lucide-react'
  * @param {Array<object>} props.data - Array of referral data (from mockData.js).
  */
 function ReferralList({ data = [] }) {
+  // State to manage the actual list of referral data, initialized from props.data
+  const [referralsData, setReferralsData] = useState(data);
+
   // State for the text input used to filter table data.
   const [filterText, setFilterText] = useState('');
   // State for sorting configuration: { key: 'columnKey', direction: 'ascending' | 'descending' }.
@@ -26,6 +29,22 @@ function ReferralList({ data = [] }) {
   // State to control the open/close state of the column toggle dropdown.
   const [isColumnToggleOpen, setIsColumnToggleOpen] = useState(false);
 
+  // States for the Add/Edit Referral Form Modal
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [editReferral, setEditReferral] = useState(null); // Stores the referral object being edited
+  const [formErrors, setFormErrors] = useState({});
+
+  // Form input states
+  const [referrer, setReferrer] = useState('');
+  const [countOfReferrals, setCountOfReferrals] = useState('');
+  const [commissionEarned, setCommissionEarned] = useState('');
+  const [referralStatus, setReferralStatus] = useState('Active'); // Default to 'Active'
+
+  // State for Delete Confirmation Modal
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [referralToDelete, setReferralToDelete] = useState(null); // Stores the ID of the referral to delete
+
+
   /**
    * Toggles the sorting direction for a given column key.
    * If the same column is clicked consecutively, it alternates between ascending and descending.
@@ -41,11 +60,11 @@ function ReferralList({ data = [] }) {
   };
 
   /**
-   * Filters and sorts the provided 'data' array based on the current 'filterText'
+   * Filters and sorts the provided 'referralsData' array based on the current 'filterText'
    * and 'sortConfig' states.
    * @returns {Array<object>} The filtered and sorted array of referral objects.
    */
-  const sortedAndFilteredData = [...data] // Create a shallow copy to prevent direct mutation of props.data
+  const sortedAndFilteredData = [...referralsData] // Create a shallow copy to prevent direct mutation of props.data
     .filter(referral =>
       // Check if any of the referral's property values (converted to string)
       // includes the filterText (case-insensitive search).
@@ -56,13 +75,21 @@ function ReferralList({ data = [] }) {
     .sort((a, b) => {
       // Apply sorting logic only if a 'sortConfig.key' is set.
       if (sortConfig.key) {
-        // Get the values for comparison, ensuring they are strings and handling potential null/undefined.
-        const valA = String(a[sortConfig.key] || '').toLowerCase();
-        const valB = String(b[sortConfig.key] || '').toLowerCase();
+        // Handle numerical comparison for 'countOfReferrals' and 'commissionEarned'
+        if (sortConfig.key === 'countOfReferrals' || sortConfig.key === 'commissionEarned') {
+          const valA = parseFloat(String(a[sortConfig.key]).replace(/[^0-9.-]+/g, "") || 0);
+          const valB = parseFloat(String(b[sortConfig.key]).replace(/[^0-9.-]+/g, "") || 0);
+          if (valA < valB) return sortConfig.direction === 'ascending' ? -1 : 1;
+          if (valA > valB) return sortConfig.direction === 'ascending' ? 1 : -1;
+        } else {
+          // General string comparison for other fields
+          const valA = String(a[sortConfig.key] || '').toLowerCase();
+          const valB = String(b[sortConfig.key] || '').toLowerCase();
 
-        // Perform comparison based on the sorting direction.
-        if (valA < valB) return sortConfig.direction === 'ascending' ? -1 : 1;
-        if (valA > valB) return sortConfig.direction === 'ascending' ? 1 : -1;
+          // Perform comparison based on the sorting direction.
+          if (valA < valB) return sortConfig.direction === 'ascending' ? -1 : 1;
+          if (valA > valB) return sortConfig.direction === 'ascending' ? 1 : -1;
+        }
       }
       return 0; // If values are equal or no sorting is applied, maintain original relative order.
     });
@@ -79,26 +106,211 @@ function ReferralList({ data = [] }) {
   };
 
   /**
-   * Placeholder function for exporting table data.
-   * In a real application, this would involve converting the 'sortedAndFilteredData'
-   * to the specified format (e.g., CSV, XLSX, PDF) and triggering a file download.
-   * @param {string} format - The desired export format (e.g., 'xls', 'pdf').
+   * Handles exporting table data to XLS (CSV) or PDF (plain text).
+   * @param {string} format - The desired export format ('xls' for CSV, 'pdf' for text file).
    */
   const handleExport = (format) => {
-    console.log(`Exporting referrals to ${format}...`);
-    // Example: Use a library like 'sheetjs' for Excel or 'jspdf' for PDF generation here.
+    let fileContent = '';
+    let fileName = '';
+    let mimeType = '';
+
+    const displayHeaders = {
+      id: 'Referral ID',
+      referrer: 'Referrer Name',
+      countOfReferrals: 'Count of Referrals',
+      commissionEarned: 'Commission Earned',
+      referralStatus: 'Status',
+    };
+
+    // Filter headers based on visible columns and map to display names
+    const headers = Object.keys(visibleColumns)
+      .filter(key => visibleColumns[key] && displayHeaders[key])
+      .map(key => displayHeaders[key])
+      .join(',');
+
+    const rows = sortedAndFilteredData.map(row =>
+      Object.keys(visibleColumns)
+        .filter(key => visibleColumns[key] && displayHeaders[key])
+        .map(key => `"${String(row[key]).replace(/"/g, '""')}"`) // Escape double quotes
+        .join(',')
+    ).join('\n');
+
+    if (format === 'xls') {
+      fileContent = `${headers}\n${rows}`;
+      fileName = 'referrals_data.csv';
+      mimeType = 'text/csv';
+      console.log('Exporting referral data to XLS (CSV format).');
+    } else if (format === 'pdf') {
+      fileContent = 'Referral Report\n\n';
+      sortedAndFilteredData.forEach(referral => {
+        fileContent += `Referral ID: ${referral.id}\n`;
+        fileContent += `Referrer: ${referral.referrer}\n`;
+        fileContent += `Count of Referrals: ${referral.countOfReferrals}\n`;
+        fileContent += `Commission Earned: ${referral.commissionEarned}\n`;
+        fileContent += `Status: ${referral.referralStatus}\n`;
+        fileContent += '--------------------\n';
+      });
+      fileName = 'referrals_report.txt';
+      mimeType = 'text/plain';
+      console.log('Exporting referral data to PDF (text format).');
+      console.warn('Note: For full PDF generation with rich formatting, a dedicated client-side PDF library (e.g., jspdf, html2pdf) would be required.');
+    }
+
+    const blob = new Blob([fileContent], { type: mimeType });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   };
 
   /**
-   * Placeholder function for deleting a referral record.
-   * In a real application, this would send a DELETE request to your backend API
-   * and then update the local state to remove the deleted referral.
-   * A confirmation dialog is usually recommended before actual deletion.
-   * @param {string} referralId - The unique ID of the referral to be deleted.
+   * Opens the add/edit referral form modal.
+   * If a referral object is passed, it pre-fills the form for editing.
+   * Otherwise, it prepares the form for adding a new referral.
+   * @param {object|null} referral - The referral object to edit, or null to add new.
    */
-  const handleDelete = (referralId) => {
-    console.log('Delete referral with ID:', referralId);
-    // Implement API call for deletion here.
+  const handleOpenForm = (referral = null) => {
+    setIsFormOpen(true);
+    setEditReferral(referral);
+    setFormErrors({}); // Clear any previous form errors.
+
+    if (referral) {
+      setReferrer(referral.referrer);
+      setCountOfReferrals(referral.countOfReferrals);
+      setCommissionEarned(referral.commissionEarned);
+      setReferralStatus(referral.referralStatus);
+    } else {
+      // Reset form fields for a new referral.
+      setReferrer('');
+      setCountOfReferrals('');
+      setCommissionEarned('');
+      setReferralStatus('Active');
+    }
+  };
+
+  /**
+   * Closes the add/edit referral form modal and resets related states.
+   */
+  const handleCloseForm = () => {
+    setIsFormOpen(false);
+    setEditReferral(null);
+    setFormErrors({}); // Clear errors when closing.
+  };
+
+  /**
+   * Validates the Referrer Name field in real-time.
+   * @param {string} name - The current value of the referrer name input.
+   */
+  const validateReferrer = (name) => {
+    setFormErrors(prevErrors => ({ ...prevErrors, referrer: name.trim() ? '' : 'Referrer Name is required.' }));
+  };
+
+  /**
+   * Validates the Count of Referrals field in real-time.
+   * @param {string} count - The current value of the count of referrals input.
+   */
+  const validateCountOfReferrals = (count) => {
+    let error = '';
+    if (!count.trim()) {
+      error = 'Count of Referrals is required.';
+    } else if (isNaN(count) || parseInt(count) < 0) {
+      error = 'Must be a non-negative number.';
+    }
+    setFormErrors(prevErrors => ({ ...prevErrors, countOfReferrals: error }));
+  };
+
+  /**
+   * Validates the Commission Earned field in real-time.
+   * @param {string} commission - The current value of the commission earned input.
+   */
+  const validateCommissionEarned = (commission) => {
+    let error = '';
+    if (!commission.trim()) {
+      error = 'Commission Earned is required.';
+    } else if (isNaN(commission) || parseFloat(commission) < 0) {
+      error = 'Must be a non-negative number.';
+    }
+    setFormErrors(prevErrors => ({ ...prevErrors, commissionEarned: error }));
+  };
+
+  /**
+   * Performs comprehensive validation for form submission.
+   * @returns {boolean} True if the form is valid, false otherwise.
+   */
+  const validateFormOnSubmit = () => {
+    const errors = {};
+    if (!referrer.trim()) {
+      errors.referrer = 'Referrer Name is required.';
+    }
+    if (!countOfReferrals.trim() || isNaN(countOfReferrals) || parseInt(countOfReferrals) < 0) {
+      errors.countOfReferrals = 'Count of Referrals is required and must be a non-negative number.';
+    }
+    if (!commissionEarned.trim() || isNaN(commissionEarned) || parseFloat(commissionEarned) < 0) {
+      errors.commissionEarned = 'Commission Earned is required and must be a non-negative number.';
+    }
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  /**
+   * Handles the form submission to add or update a referral.
+   * @param {Event} e - The form submission event.
+   */
+  const handleFormSubmit = (e) => {
+    e.preventDefault();
+    if (!validateFormOnSubmit()) {
+      console.log('Form validation failed. Please correct the errors.');
+      return;
+    }
+
+    const newReferral = {
+      id: editReferral ? editReferral.id : `REF${Date.now()}`,
+      referrer,
+      countOfReferrals: parseInt(countOfReferrals),
+      commissionEarned: parseFloat(commissionEarned).toFixed(2), // Format to 2 decimal places
+      referralStatus,
+    };
+
+    if (editReferral) {
+      setReferralsData(referralsData.map(r => r.id === newReferral.id ? newReferral : r));
+      console.log('Referral Updated:', newReferral);
+    } else {
+      setReferralsData([...referralsData, newReferral]);
+      console.log('New Referral Added:', newReferral);
+    }
+
+    handleCloseForm();
+  };
+
+  /**
+   * Opens the delete confirmation modal.
+   * @param {string} referralId - The unique ID of the referral to delete.
+   */
+  const handleDeleteClick = (referralId) => {
+    setReferralToDelete(referralId);
+    setShowDeleteConfirm(true);
+  };
+
+  /**
+   * Confirms and performs the deletion of a referral record.
+   */
+  const confirmDelete = () => {
+    setReferralsData(referralsData.filter(r => r.id !== referralToDelete));
+    console.log('Deleting referral with ID:', referralToDelete);
+    setShowDeleteConfirm(false);
+    setReferralToDelete(null);
+  };
+
+  /**
+   * Cancels the deletion process.
+   */
+  const cancelDelete = () => {
+    setShowDeleteConfirm(false);
+    setReferralToDelete(null);
   };
 
   /**
@@ -114,9 +326,18 @@ function ReferralList({ data = [] }) {
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 space-y-8 bg-bg-base text-text-base">
-      <h2 className="text-3xl font-bold text-secondary flex items-center gap-3">
-        <Link className="w-8 h-8 text-primary" /> Referral List
-      </h2>
+      <div className="flex justify-between items-center">
+        <h2 className="text-3xl font-bold text-secondary flex items-center gap-3">
+          <Link className="w-8 h-8 text-primary" /> Referral List
+        </h2>
+        {/* Button to add a new referral */}
+        <button
+          onClick={() => handleOpenForm()}
+          className="action-button-custom"
+        >
+          <PlusCircle className="w-5 h-5 mr-2" /> Add New Referral
+        </button>
+      </div>
 
       {/* Table Controls Section: Filter Input, Column Toggle, Export Buttons */}
       <div className="kpi-card-custom overflow-x-auto">
@@ -154,6 +375,7 @@ function ReferralList({ data = [] }) {
                       checked={visibleColumns[colKey]}
                       onChange={() => handleColumnToggle(colKey)}
                       className="form-checkbox text-primary rounded"
+                      disabled={colKey === 'actions'} // Actions column cannot be hidden
                     />
                     {/* Convert camelCase key to a more readable Title Case for display */}
                     <span>{colKey.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}</span>
@@ -208,9 +430,17 @@ function ReferralList({ data = [] }) {
                 </td>}
                 {visibleColumns.actions && (
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                    {/* Edit button for referral row */}
+                    <button
+                      onClick={() => handleOpenForm(referral)}
+                      className="text-primary hover:text-primary-dark mr-3 transition-colors"
+                      aria-label={`Edit ${referral.id}`}
+                    >
+                      <Edit className="w-5 h-5 inline" />
+                    </button>
                     {/* Delete button for referral row */}
                     <button
-                      onClick={() => handleDelete(referral.id)}
+                      onClick={() => handleDeleteClick(referral.id)}
                       className="text-danger hover:text-danger-dark transition-colors"
                       aria-label={`Delete ${referral.id}`}
                     >
@@ -223,6 +453,136 @@ function ReferralList({ data = [] }) {
           </tbody>
         </table>
       </div>
+
+      {/* Add/Edit Referral Form Modal */}
+      {isFormOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-card-bg rounded-lg p-8 shadow-strong max-w-lg w-full relative">
+            {/* Close button for the form modal */}
+            <button
+              onClick={handleCloseForm}
+              className="absolute top-4 right-4 text-text-light hover:text-danger transition-colors"
+              aria-label="Close form"
+            >
+              <X className="w-6 h-6" />
+            </button>
+            {/* Form title based on whether it's an edit or add operation */}
+            <h3 className="dashboard-widget-title mb-6">
+              {editReferral ? 'Edit Referral Details' : 'Add New Referral'}
+            </h3>
+            {/* Referral Add/Edit Form */}
+            <form onSubmit={handleFormSubmit} className="space-y-4">
+              <div>
+                <label htmlFor="referrer" className="block text-sm font-medium text-text-base mb-1">
+                  Referrer Name <span className="text-danger">*</span>
+                </label>
+                <input
+                  type="text"
+                  id="referrer"
+                  value={referrer}
+                  onChange={(e) => {
+                    setReferrer(e.target.value);
+                    validateReferrer(e.target.value); // Real-time validation
+                  }}
+                  className={`w-full p-3 border rounded-md bg-bg-base text-text-base focus:ring-primary focus:border-primary outline-none ${formErrors.referrer ? 'border-danger' : 'border-border-base'}`}
+                  required
+                />
+                {formErrors.referrer && <p className="text-danger text-xs mt-1">{formErrors.referrer}</p>}
+              </div>
+              <div>
+                <label htmlFor="countOfReferrals" className="block text-sm font-medium text-text-base mb-1">
+                  Count of Referrals <span className="text-danger">*</span>
+                </label>
+                <input
+                  type="number"
+                  id="countOfReferrals"
+                  value={countOfReferrals}
+                  onChange={(e) => {
+                    setCountOfReferrals(e.target.value);
+                    validateCountOfReferrals(e.target.value); // Real-time validation
+                  }}
+                  className={`w-full p-3 border rounded-md bg-bg-base text-text-base focus:ring-primary focus:border-primary outline-none ${formErrors.countOfReferrals ? 'border-danger' : 'border-border-base'}`}
+                  required
+                  min="0"
+                />
+                {formErrors.countOfReferrals && <p className="text-danger text-xs mt-1">{formErrors.countOfReferrals}</p>}
+              </div>
+              <div>
+                <label htmlFor="commissionEarned" className="block text-sm font-medium text-text-base mb-1">
+                  Commission Earned <span className="text-danger">*</span>
+                </label>
+                <input
+                  type="number"
+                  id="commissionEarned"
+                  value={commissionEarned}
+                  onChange={(e) => {
+                    setCommissionEarned(e.target.value);
+                    validateCommissionEarned(e.target.value); // Real-time validation
+                  }}
+                  className={`w-full p-3 border rounded-md bg-bg-base text-text-base focus:ring-primary focus:border-primary outline-none ${formErrors.commissionEarned ? 'border-danger' : 'border-border-base'}`}
+                  required
+                  step="0.01"
+                  min="0"
+                />
+                {formErrors.commissionEarned && <p className="text-danger text-xs mt-1">{formErrors.commissionEarned}</p>}
+              </div>
+              <div>
+                <label htmlFor="referralStatus" className="block text-sm font-medium text-text-base mb-1">
+                  Referral Status
+                </label>
+                <select
+                  id="referralStatus"
+                  value={referralStatus}
+                  onChange={(e) => setReferralStatus(e.target.value)}
+                  className="w-full p-3 border border-border-base rounded-md bg-bg-base text-text-base focus:ring-primary focus:border-primary outline-none"
+                >
+                  <option value="Active">Active</option>
+                  <option value="Pending">Pending</option>
+                  <option value="Inactive">Inactive</option>
+                </select>
+              </div>
+              <div className="form-actions-custom flex justify-end"> {/* Custom styling for form action buttons */}
+                <button type="submit" className="action-button-custom">
+                  {editReferral ? 'Update Referral' : 'Add Referral'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-card-bg rounded-lg p-8 shadow-strong max-w-sm w-full relative text-center">
+            <button
+              onClick={cancelDelete}
+              className="absolute top-4 right-4 text-text-light hover:text-danger transition-colors"
+              aria-label="Close"
+            >
+              <X className="w-6 h-6" />
+            </button>
+            <h3 className="dashboard-widget-title mb-4">Confirm Deletion</h3>
+            <p className="text-text-base mb-6">
+              Are you sure you want to delete referral ID: <span className="font-semibold text-danger">{referralToDelete}</span>? This action cannot be undone.
+            </p>
+            <div className="flex justify-center gap-4">
+              <button
+                onClick={confirmDelete}
+                className="action-button-custom bg-danger hover:bg-danger-dark"
+              >
+                Delete
+              </button>
+              <button
+                onClick={cancelDelete}
+                className="action-button-custom cancel-button-custom"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

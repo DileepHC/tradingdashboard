@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { Menu, Search, Bot, Bell, Sun, Moon, User, ChevronDown, LogOut, Settings } from 'lucide-react';
 
-function Header({ isSidebarCollapsed, setIsSidebarCollapsed, isDarkMode, setIsDarkMode, userName, userAvatar }) {
+// Add setActiveModule and setIsAiAssistantOpen to the props destructuring
+function Header({ isSidebarCollapsed, setIsSidebarCollapsed, isDarkMode, setIsDarkMode, userName, userAvatar, setActiveModule, setIsAiAssistantOpen }) {
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
 
@@ -27,23 +28,39 @@ function Header({ isSidebarCollapsed, setIsSidebarCollapsed, isDarkMode, setIsDa
     setIsDarkMode(!isDarkMode);
   };
 
-  // Placeholder functions for profile dropdown actions
+  // Handler for AI Assistant button click
+  const handleAiAssistantClick = () => {
+    console.log('AI Assistant clicked');
+    // Open the AI Assistant modal by setting its state to true
+    if (setIsAiAssistantOpen) { // Ensure setIsAiAssistantOpen is available
+      setIsAiAssistantOpen(true);
+    }
+  };
+
+  // Functions for profile dropdown actions (still use setActiveModule for navigation)
   const handleProfileClick = () => {
     console.log('Profile clicked');
     setIsProfileDropdownOpen(false);
-    // In a real app, you'd navigate to a profile page or open a modal
+    if (setActiveModule) { // Ensure setActiveModule is available
+      setActiveModule('profile'); // Navigate to profile page
+    }
   };
 
   const handleSettingsClick = () => {
     console.log('Settings clicked');
     setIsProfileDropdownOpen(false);
-    // In a real app, you'd navigate to a settings page or open a modal
+    if (setActiveModule) { // Ensure setActiveModule is available
+      setActiveModule('settings'); // Navigate to settings page
+    }
   };
 
   const handleLogoutClick = () => {
     console.log('Logout clicked');
     setIsProfileDropdownOpen(false);
-    // In a real app, you'd handle authentication logout
+    if (setActiveModule) { // Ensure setActiveModule is available
+      setActiveModule('logout'); // Navigate to logout page
+    }
+    // In a real app, you'd handle authentication logout here
   };
 
   return (
@@ -78,7 +95,7 @@ function Header({ isSidebarCollapsed, setIsSidebarCollapsed, isDarkMode, setIsDa
           // Using custom action icon style
           className="header-action-icon-custom"
           aria-label="AI Assistant"
-          onClick={() => console.log('AI Assistant clicked')} // Placeholder for AI Assistant Modal
+          onClick={handleAiAssistantClick} // Call the new handler to open modal
         >
           <Bot className="w-6 h-6" />
         </button>
@@ -130,7 +147,8 @@ function Header({ isSidebarCollapsed, setIsSidebarCollapsed, isDarkMode, setIsDa
             className="flex items-center space-x-2 p-1 rounded-full hover:bg-bg-base transition-colors duration-300"
             aria-label="User profile menu"
           >
-            <img src="/assets/John.jpg" alt="User Avatar" className="user-avatar-custom" /> {/* Using custom avatar style */}
+            {/* Using userAvatar prop for the image source */}
+            <img src={userAvatar} alt="User Avatar" className="user-avatar-custom" />
             <span className="text-secondary font-medium hidden md:block">{userName}</span>
             <ChevronDown className="w-4 h-4 text-text-light" />
           </button>

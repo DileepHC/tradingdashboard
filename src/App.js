@@ -1,7 +1,8 @@
 // src/App.js
 import React, { useState, useEffect, useMemo } from 'react';
 import { ThemeProvider, CssBaseline } from '@mui/material'; // Import Material-UI ThemeProvider and CssBaseline
-import { themeSettings } from './theme'; // Import your custom theme settings function
+import { createTheme } from '@mui/material/styles'; // Import createTheme for themeMemo
+import { themeSettings } from './theme'; // Corrected: Import your custom theme settings function
 import Header from './components/Header.jsx';
 import Sidebar from './components/Sidebar.jsx';
 import { dashboardData } from './data/mockData.js'; // Import dashboard data
@@ -20,11 +21,14 @@ import Payments from './scenes/payments/index.jsx';
 import Settings from './scenes/settings/index.jsx';
 import AuthControl from './scenes/auth/AuthControl.jsx';
 import Logout from './scenes/logout/index.jsx';
+import Profile from './scenes/profile/index.jsx'; // Corrected import path for Profile component
+import AiAssistant from './components/AIAssistant.jsx'; // Corrected import path for AiAssistant component
 
 
 function App() {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [activeModule, setActiveModule] = useState('dashboard'); // Default to 'dashboard'
+  const [isAiAssistantOpen, setIsAiAssistantOpen] = useState(false); // New state for AI Assistant modal
 
   // State for Material-UI theme mode: 'light' or 'dark'
   const [mode, setMode] = useState(() => {
@@ -34,7 +38,7 @@ function App() {
   });
 
   // Memoize the theme object to prevent unnecessary re-creations
-  const theme = useMemo(() => themeSettings(mode), [mode]);
+  const theme = useMemo(() => createTheme(themeSettings(mode)), [mode]); // Use createTheme here
 
   // Function to set dark/light mode directly, to be passed as setIsDarkMode
   const setIsDarkMode = (isDark) => {
@@ -58,30 +62,33 @@ function App() {
       case 'dashboard':
         return <Dashboard data={dashboardData} />;
       case 'indicators':
-        return <Indicators data={dashboardData.indicators} />;
+        return <Indicators data={dashboardData.indicatorsList} />; // Corrected data prop name
       case 'pricing-plans':
         return <PricingPlans data={dashboardData.pricingPlans} />;
       case 'users':
       case 'users-main': // Default for Users parent, showing Main Users
-        return <UsersMain data={dashboardData.users.mainUsers} />;
+        return <UsersMain data={dashboardData.users.allUsers} />; // Corrected data prop name
       case 'users-paid':
         return <UsersPaid data={dashboardData.users.paidSubscribers} />;
       case 'users-demo':
         return <UsersDemo data={dashboardData.users.demoSubscribers} />;
       case 'users-daily':
         return <UsersDaily data={dashboardData.users.dailyNewSubscribers} />;
-      case 'referral-list':
-        return <ReferralList data={dashboardData.referrals} />;
+      case 'referrals': // Corrected module name for consistency with Sidebar
+        return <ReferralList data={dashboardData.referralList} />; // Corrected data prop name
       case 'messages':
-        return <Messages data={dashboardData.messages} />;
+        return <Messages data={dashboardData.messageHistory} />; // Corrected data prop name
       case 'payments':
-        return <Payments data={dashboardData.payments} />;
+        return <Payments data={dashboardData.paymentHistory} />; // Corrected data prop name
       case 'settings':
-        return <Settings data={dashboardData.settings} />;
+        return <Settings data={dashboardData.appSettings} />; // Corrected data prop name
       case 'auth-control':
-        return <AuthControl data={dashboardData.authControl} />;
+        return <AuthControl data={dashboardData.authSettings} />; // Corrected data prop name
+      case 'profile': // Added case for Profile
+        return <Profile data={dashboardData.userProfile} />; // Pass user profile data
       case 'logout':
         return <Logout />;
+      // Removed 'ai-assistant' from switch as it will be a modal
       default:
         return (
           <div className="p-8">
@@ -110,12 +117,16 @@ function App() {
             setIsDarkMode={setIsDarkMode} // Pass the setIsDarkMode function
             userName="John Doe"
             userAvatar="https://placehold.co/40x40/random/white?text=JD"
+            setActiveModule={setActiveModule} // Pass setActiveModule to Header
+            setIsAiAssistantOpen={setIsAiAssistantOpen} // Pass the setter for AI Assistant modal
           />
           <main className="flex-1">
             {renderContent()}
           </main>
         </div>
       </div>
+      {/* Render the AiAssistant modal conditionally */}
+      <AiAssistant isOpen={isAiAssistantOpen} onClose={() => setIsAiAssistantOpen(false)} />
     </ThemeProvider>
   );
 }

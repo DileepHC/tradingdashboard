@@ -3,11 +3,41 @@
 @tailwind components;
 @tailwind utilities;
 
-/*
-  Define CSS Variables for Light Theme
-  These are derived directly from your previously provided dashboard.css
-  and farmer.css root variables.
-*/
+
+/* ===============================
+    Fonts & Universal Styles
+    =============================== */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  font-family: 'Poppins', sans-serif;
+  /* Ensure scrollbar-width is applied globally for Firefox */
+  scrollbar-width: none;
+}
+
+/* Hide scrollbar for Webkit browsers globally */
+html::-webkit-scrollbar {
+  display: none;
+}
+
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  /* Apply transitions globally for smooth theme changes and hover effects */
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease, box-shadow 0.2s ease-in-out, transform 0.2s ease-in-out;
+}
+
+
+/* ===============================
+    Light Theme Variables
+    =============================== */
 :root {
   /* Color Palette */
   --primary-color: #3498db; /* Blue */
@@ -21,6 +51,8 @@
   --sidebarbackground-color: white; /* Sidebar background */
   --card-background: #ffffff; /* Background for cards, modals */
   --border-color: #e6e9ed; /* Light grey for borders */
+  --bg-hover: #e6e9ed; /* For general hover backgrounds (light theme) */
+
 
   /* Shadows (using rgba for compatibility with variable application) */
   --shadow-light: rgba(0, 0, 0, 0.04);
@@ -44,10 +76,7 @@
   --gradient-light-text-color: linear-gradient(135deg, #7f8c8d, #6c7a89);
 }
 
-/*
-  Dark Theme Variables
-  These are applied when the 'dark' class is present on the html element.
-*/
+/* Dark Theme */
 html.dark {
   --primary-color: #66b3ff;
   --secondary-color: #e2e8f0; /* Light text for dark background headings */
@@ -63,6 +92,8 @@ html.dark {
   --shadow-light: rgba(0, 0, 0, 0.2);
   --shadow-medium: rgba(0, 0, 0, 0.3);
   --shadow-strong: rgba(0, 0, 0, 0.4);
+  --bg-hover: #3a475a; /* For general hover backgrounds (dark theme) */
+  
 
   /* Linear Gradient Colors for Dark Theme */
   --gradient-primary: linear-gradient(135deg, #66b3ff, #3388ff);
@@ -77,51 +108,11 @@ html.dark {
 }
 
 
-/* Universal Box-Sizing and Font - Ensure Poppins is loaded */
-@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
-
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-  font-family: 'Poppins', sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  scroll-behavior: smooth;
-  /* Apply transitions globally for smooth theme changes and hover effects */
-  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease, box-shadow 0.2s ease-in-out, transform 0.2s ease-in-out;
-}
-
-/* Custom scrollbar (if not hiding globally) */
-.custom-scrollbar::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-
-.custom-scrollbar::-webkit-scrollbar-thumb {
-  background-color: var(--border-color); /* Matches border color for subtlety */
-  border-radius: 4px;
-}
-
-.custom-scrollbar::-webkit-scrollbar-track {
-  background-color: transparent;
-}
-
-/* Firefox Invisible Scrollbar for all scrollable elements */
-*::-webkit-scrollbar {
-  display: none; /* For Chrome, Safari, Opera */
-}
-
-
-/*
-  Custom CSS Rules adapted from your original dashboard.css and farmer.css.
-  These are now directly within index.css and use the CSS variables for theming.
-  They are placed after Tailwind utilities to ensure they can override defaults.
-*/
-
-/* General Body and Container */
+/* ===============================
+    Body & Scrollbar
+    =============================== */
 body {
-  background: var(--gradient-background); /* Apply gradient from variable */
+  background: var(--background-color);
   color: var(--text-color);
   line-height: 1.6;
   overflow-x: hidden;
@@ -130,19 +121,37 @@ body {
   flex-direction: column;
 }
 
-/* Header Styling (adapted from dashboard.css) */
+/* Custom scrollbar for specific elements */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 8px;
+  height: 8px; /* For horizontal scrollbars */
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background-color: transparent;
+}
+
+
+/* ===============================
+    Header
+    =============================== */
 .dashboard-header-custom {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 10px 20px;
-  background: var(--gradient-card);
+  padding: 10px 20px; /* Added padding here */
+  background: var(--card-background);
   border-bottom: 1px solid var(--border-color);
   box-shadow: 0 4px 15px var(--shadow-medium);
-  height: var(--header-height); /* Set height using variable */
+  height: var(--header-height);
   position: sticky;
   top: 0;
-  z-index: 100;
+  z-index: 200; /* Header should be above general content but below modals */
 }
 
 .header-logo-custom {
@@ -160,20 +169,7 @@ body {
   letter-spacing: -0.02em;
 }
 
-.menu-icon-custom {
-  font-size: 28px;
-  cursor: pointer;
-  color: var(--primary-color);
-  padding: 8px;
-  border-radius: 50%;
-  transition: background-color 0.2s ease, transform 0.2s ease;
-}
-
-.menu-icon-custom:hover {
-  background-color: var(--background-color);
-  transform: scale(1.1);
-}
-
+/* Search bar styling - Exactly as provided by user */
 .searchbar-custom {
   display: flex;
   align-items: center;
@@ -206,47 +202,27 @@ body {
   color: var(--light-text-color);
 }
 
-.header-action-icon-custom {
-  font-size: 24px;
-  color: var(--primary-color);
-  cursor: pointer;
-  padding: 3px;
+/* User profile styling */
+.user-avatar-custom {
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
-  transition: background-color 0.2s ease, transform 0.2s ease;
-  position: relative;
+  object-fit: cover;
+  border: 2px solid var(--primary-color);
+  box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.3);
 }
 
-.header-action-icon-custom:hover {
-  background-color: var(--background-color);
-  transform: scale(1.1);
-}
-
-.notification-badge-custom {
-  position: absolute;
-  top: -5px;
-  right: -5px;
-  background: var(--gradient-danger);
-  color: white;
-  font-size: 0.5em;
-  border-radius: 50%;
-  padding: 3px 7px;
-  min-width: 20px;
-  text-align: center;
-  pointer-events: none;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-}
-
-.notification-dropdown-custom,
-.language-dropdown-custom .dropdown-menu-custom {
+/* Dropdown styling (reused for notifications and profile) */
+.notification-dropdown-custom {
   position: absolute;
   top: 60px;
   right: 0;
-  background: var(--gradient-card);
+  background: var(--card-background);
   border: 1px solid var(--border-color);
   border-radius: 12px;
   box-shadow: 0 8px 25px var(--shadow-strong);
   min-width: 280px;
-  z-index: 200;
+  z-index: 200; /* Should be above header */
   display: none;
   padding: 15px 0;
   opacity: 0;
@@ -255,8 +231,7 @@ body {
   pointer-events: none;
 }
 
-.notification-dropdown-custom.active,
-.language-dropdown-custom .dropdown-menu-custom.active {
+.notification-dropdown-custom.active {
   display: block;
   opacity: 1;
   transform: translateY(0);
@@ -292,7 +267,7 @@ body {
 }
 
 .notification-dropdown-custom li:hover {
-  background-color: var(--background-color);
+  background-color: var(--bg-hover);
 }
 
 .notification-dropdown-custom .view-all-notifications-custom {
@@ -300,7 +275,7 @@ body {
   width: calc(100% - 40px);
   margin: 15px auto 0;
   padding: 10px 15px;
-  background: var(--gradient-primary);
+  background: var(--primary-color); /* Direct color for non-gradient use */
   color: white;
   border: none;
   border-radius: 8px;
@@ -309,6 +284,7 @@ body {
   text-align: center;
   box-shadow: 0 2px 8px var(--shadow-medium);
   transition: background-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+  outline: none; /* Resetting default outline */
 }
 
 .notification-dropdown-custom .view-all-notifications-custom:hover {
@@ -317,40 +293,60 @@ body {
   box-shadow: 0 4px 12px var(--shadow-strong);
 }
 
-/* User Profile (adapted) */
-.user-avatar-custom {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  object-fit: cover;
-  border: 2px solid var(--primary-color);
-  box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.3);
+.notification-dropdown-custom .view-all-notifications-custom:focus-visible {
+  outline: 2px solid var(--accent-color);
+  outline-offset: 2px;
+  background-color: #2980b9; /* Consistent with hover */
+}
+.notification-dropdown-custom .view-all-notifications-custom:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px var(--shadow-medium);
+  background-color: #2779a5; /* Even darker shade for active click */
 }
 
-/* Sidebar (adapted) */
+/* Badge for notifications */
+.notification-badge-custom {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  background: var(--danger-color);
+  color: white;
+  font-size: 0.65em;
+  border-radius: 50%;
+  padding: 2px 6px;
+  min-width: 20px;
+  text-align: center;
+  pointer-events: none; /* Crucial: ensures badge doesn't block clicks */
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+/* ===============================
+    Sidebar
+    =============================== */
 .sidebar-custom {
   width: var(--sidebar-width);
-  background: var(--gradient-card);
+  background: var(--card-background);
   border-right: 1px solid var(--border-color);
   box-shadow: 2px 0 8px var(--shadow-light);
   padding: 0;
   flex-shrink: 0;
   overflow-y: auto;
   transition: width 0.3s ease;
+  position: relative;
+  z-index: 150; /* Sidebar below header, but above main content */
   scrollbar-width: none; /* For Firefox */
   -ms-overflow-style: none; /* For Edge/IE */
 }
 
-/* For Webkit browsers, specifically hide sidebar scrollbar */
 .sidebar-custom::-webkit-scrollbar {
-  display: none;
+  display: none; /* For Webkit browsers */
 }
 
 .sidebar-custom.sidebar-collapsed {
   width: var(--sidebar-width-collapsed);
 }
 
-/* New style for sidebar's top logo/title section to align with header */
+/* Sidebar header (logo area) */
 .sidebar-header-top {
   display: flex;
   align-items: center;
@@ -362,7 +358,6 @@ body {
   box-shadow: 0 4px 10px var(--shadow-light);
 }
 
-/* Ensure the image fills the space without adding extra padding */
 .sidebar-header-top img {
   max-width: 100%;
   max-height: 100%;
@@ -370,10 +365,11 @@ body {
   padding: 0;
 }
 
+/* Sidebar menu item styles */
 .sidebar-menu-item-custom {
   display: flex;
   align-items: center;
-  gap: 0; /* Keep this at 0 for flex container */
+  gap: 12px; /* Consistent spacing for icon and text */
   width: calc(100% - 20px);
   padding: 12px 15px;
   border-radius: 8px;
@@ -386,54 +382,64 @@ body {
   transition: background-color 0.2s ease, color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
   position: relative;
   overflow: hidden;
+  outline: none; /* Remove default outline */
 }
 
-.sidebar-menu-item-custom svg { /* Targeting the Lucide icon directly */
-  flex-shrink: 0; /* Ensure icon doesn't shrink */
-  margin-right: -4px; /* **<<<<<<<<<<<<<<<<<< KEY CHANGE HERE** */
+.sidebar-menu-item-custom svg {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
 }
 
 .sidebar-menu-item-custom .menu-text-custom {
-  /* Removed previous margin-left, relying on icon's negative margin-right */
-  white-space: nowrap; /* Prevent text wrapping */
-  flex-grow: 1; /* Allow text to take remaining space */
+  white-space: nowrap;
+  flex-grow: 1;
 }
 
-
 .sidebar-menu-item-custom:hover {
-  background-color: var(--background-color);
+  background-color: var(--bg-hover);
   color: var(--primary-color);
   transform: translateX(3px);
   box-shadow: 0 2px 10px var(--shadow-medium);
 }
 
-.sidebar-menu-item-custom:hover::before {
+.sidebar-menu-item-custom:focus-visible {
+  outline: 2px solid var(--accent-color);
+  outline-offset: 2px;
+  background-color: var(--bg-hover); /* Consistent with hover */
+}
+
+/* Shine effect for sidebar menu items on hover */
+.sidebar-menu-item-custom::before {
   content: '';
   position: absolute;
   top: 0;
-  left: -100%;
-  width: 30%;
+  left: 0;
+  width: 30%; /* Width of the shine effect */
   height: 100%;
   background: rgba(255, 255, 255, 0.3);
-  transform: skewX(-20deg);
-  animation: shine 0.7s forwards;
+  transform: translateX(-100%) skewX(-20deg); /* Start off-screen to the left */
+  animation: none; /* Default to no animation */
+  pointer-events: none; /* Prevents pseudo-element from blocking clicks */
+  transition: transform 0.5s ease-out; /* Smooth transition for the effect */
 }
 
-@keyframes shine {
-  to {
-    left: 100%;
-  }
+.sidebar-menu-item-custom:hover::before {
+  transform: translateX(200%) skewX(-20deg); /* Move past the button on hover */
 }
 
+
+/* Active state for sidebar menu items */
 .sidebar-menu-item-custom.active {
-  background: var(--gradient-secondary);
+  background: var(--primary-color); /* Changed to primary color for consistency */
   color: white;
   box-shadow: 0 4px 15px var(--shadow-strong);
   transform: translateX(8px);
 }
 
 .sidebar-menu-item-custom.active .material-symbols-outlined,
-.sidebar-menu-item-custom.active .menu-text-custom {
+.sidebar-menu-item-custom.active .menu-text-custom,
+.sidebar-menu-item-custom.active svg {
   color: white;
 }
 
@@ -448,11 +454,382 @@ body {
   padding: 12px;
   margin: 0 auto 5px auto;
   border-radius: 8px;
-  transform: none;
+  transform: none; /* No translation in collapsed state */
+  gap: 0; /* Remove gap in collapsed state to center icon */
+}
+
+/* ===============================
+    Buttons (General Action Buttons)
+    =============================== */
+.action-button-custom {
+  background: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 12px 20px;
+  font-size: 1em;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px; /* Consistent spacing for icon/text */
+  box-shadow: 0 2px 8px var(--shadow-medium);
+  white-space: nowrap;
+  transition: all 0.3s ease;
+  overflow: hidden;
+  position: relative;
+  outline: none; /* Remove default outline */
+}
+
+.action-button-custom:hover {
+  background-color: #2980b9; /* Darker shade for direct hover background */
+  box-shadow: 0 4px 15px var(--shadow-strong);
+  transform: translateY(-2px);
+}
+
+.action-button-custom:focus-visible {
+  outline: 2px solid var(--accent-color);
+  outline-offset: 2px;
+  background-color: #2980b9; /* Consistent with hover */
+}
+
+.action-button-custom:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px var(--shadow-medium);
+  background-color: #2779a5; /* Even darker shade for active click */
+}
+
+/* Shine effect for action buttons */
+.action-button-custom::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%; /* Cover the whole button */
+  height: 100%;
+  background: rgba(255, 255, 255, 0.2);
+  transform: translateX(-100%) skewX(-20deg);
+  pointer-events: none; /* Prevents pseudo-element from blocking clicks */
+  transition: transform 0.5s ease; /* Smooth transition for the effect */
+}
+
+.action-button-custom:hover::before {
+  transform: translateX(100%) skewX(-20deg); /* Slide across the entire button */
+}
+
+/* Smaller action button for specific cases (e.g., "Add New Indicator", "Add Subscriber") */
+.action-button-small {
+  padding: 8px 15px; /* Smaller padding */
+  font-size: 0.9em; /* Smaller font size */
+  gap: 6px; /* Smaller gap for icons */
+  min-width: unset; /* Allow it to shrink if content is small */
 }
 
 
-/* Dashboard Widget Title for consistency */
+/* Cancel button specific styles */
+.cancel-button-custom {
+  background-color: var(--light-text-color);
+  color: white; /* Ensure text is white for contrast */
+  /* Inherit other styles from action-button-custom but override background */
+  outline: none; /* Remove default outline */
+}
+
+.cancel-button-custom:hover {
+  background-color: #6c7a89;
+  /* Specific hover for cancel, avoiding gradient on hover */
+}
+
+.cancel-button-custom:focus-visible {
+  outline: 2px solid var(--accent-color);
+  outline-offset: 2px;
+  background-color: #6c7a89; /* Consistent with hover */
+}
+
+.cancel-button-custom:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px var(--shadow-medium);
+  background-color: #5b6875; /* Darker shade for active click */
+}
+
+/* Icon-only button styles (for menu, header actions) */
+.menu-icon-custom,
+.header-action-icon-custom {
+  cursor: pointer;
+  font-size: 24px; /* Default size, can be overridden by Tailwind classes like w-6 h-6 */
+  color: var(--primary-color);
+  padding: 8px;
+  border-radius: 50%;
+  transition: background-color 0.2s ease, transform 0.2s ease;
+  position: relative;
+  outline: none; /* Remove default outline */
+  display: flex; /* Ensures SVG icons are centered correctly */
+  align-items: center;
+  justify-content: center;
+}
+
+.menu-icon-custom:hover,
+.header-action-icon-custom:hover {
+  background-color: var(--bg-hover); /* Use new hover background variable */
+  transform: scale(1.1);
+}
+
+.menu-icon-custom:focus-visible,
+.header-action-icon-custom:focus-visible {
+  outline: 2px solid var(--accent-color);
+  outline-offset: 2px;
+  background-color: var(--bg-hover); /* Consistent with hover */
+}
+
+.menu-icon-custom svg,
+.header-action-icon-custom svg {
+  width: 24px; /* Match font-size for consistency with Lucide */
+  height: 24px;
+}
+
+
+/* ===============================
+    Form Elements (Inputs, Textareas, Selects, Error Messages)
+    =============================== */
+.form-group {
+  margin-bottom: 1rem;
+}
+
+.form-label {
+  display: block;
+  font-size: 0.9em;
+  font-weight: 500;
+  color: var(--text-color);
+  margin-bottom: 0.5rem;
+}
+
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="number"],
+input[type="date"],
+textarea,
+select {
+  width: 100%;
+  padding: 12px 15px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background-color: var(--background-color); /* Use background-color for inputs */
+  color: var(--text-color);
+  font-size: 1em;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  outline: none; /* Remove default outline */
+}
+
+input[type="file"] {
+  padding: 8px 0; /* Adjust padding for file input */
+}
+
+input[type="text"]:focus,
+input[type="email"]:focus,
+input[type="password"]:focus,
+input[type="number"]:focus,
+input[type="date"]:focus,
+textarea:focus,
+select:focus {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
+}
+
+/* Specific styling for valid/invalid states (e.g., used with validation logic) */
+input.is-invalid,
+textarea.is-invalid,
+select.is-invalid {
+  border-color: var(--danger-color);
+}
+
+.form-error {
+  color: var(--danger-color);
+  font-size: 0.85em;
+  margin-top: 0.25rem;
+}
+
+/* Checkbox/Toggle Switch base styles (for AuthControl, Settings) */
+input[type="checkbox"].sr-only + div { /* The visible track */
+  background-color: var(--border-color);
+  width: 3.5rem; /* 56px */
+  height: 2rem; /* 32px */
+  border-radius: 9999px; /* Full rounded */
+  transition: background-color 0.2s ease;
+}
+
+input[type="checkbox"].sr-only:checked + div {
+  background-color: var(--primary-color);
+}
+
+input[type="checkbox"].sr-only + div + div { /* The movable dot */
+  background-color: white;
+  width: 1.5rem; /* 24px */
+  height: 1.5rem; /* 24px */
+  border-radius: 9999px;
+  transition: transform 0.2s ease;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+input[type="checkbox"].sr-only:checked + div + div {
+  transform: translateX(1.5rem); /* Move 24px */
+}
+
+
+/* ===============================
+    Form Actions (Buttons at bottom of forms)
+    =============================== */
+.form-actions-custom {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 25px;
+}
+
+/* New utility class to align content to the right within a container */
+.align-content-right {
+  display: flex;
+  justify-content: flex-end;
+  width: 100%;
+}
+
+/* For buttons that need to be top-right */
+.top-right-button-container {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 1rem; /* Space below the button */
+  width: 100%;
+}
+
+
+/* ===============================
+    Modal
+    =============================== */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7); /* Slightly darker overlay for better contrast and focus */
+  z-index: 99999; /* HIGHEST Z-INDEX to ensure it's always on top */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem; /* Padding for mobile view */
+  overflow-y: auto; /* Allow scrolling if modal content is too tall */
+}
+
+.modal-content-custom {
+  background: var(--card-background);
+  border-radius: 12px;
+  padding: 30px;
+  box-shadow: 0 10px 30px var(--shadow-strong);
+  max-width: 600px; /* Max width for readability */
+  width: 100%;
+  position: relative; /* For positioning close button */
+  max-height: 90vh; /* Max height to prevent overflow */
+  overflow-y: auto; /* Allow content inside modal to scroll */
+}
+
+.modal-close-button-custom {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  background: none;
+  border: none;
+  font-size: 1.5em;
+  color: var(--light-text-color);
+  cursor: pointer;
+  transition: color 0.2s ease, transform 0.2s ease;
+  outline: none; /* Remove default outline */
+}
+
+.modal-close-button-custom:hover {
+  color: var(--danger-color);
+  transform: rotate(90deg);
+}
+.modal-close-button-custom:focus-visible {
+  outline: 2px solid var(--accent-color);
+  outline-offset: 2px;
+}
+
+
+/* ===============================
+    Tables (General Table Styling)
+    =============================== */
+.table-container-custom {
+  overflow-x: auto; /* Allows horizontal scrolling on small screens */
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  box-shadow: 0 2px 10px var(--shadow-light);
+  background: var(--card-background);
+}
+
+.table-custom {
+  width: 100%;
+  border-collapse: collapse; /* Removes spacing between table borders */
+}
+
+.table-custom thead {
+  background-color: var(--background-color); /* Light background for header */
+}
+
+.table-custom th {
+  padding: 12px 15px;
+  text-align: left;
+  font-size: 0.85em;
+  font-weight: 600;
+  color: var(--secondary-color);
+  text-transform: uppercase;
+  border-bottom: 1px solid var(--border-color);
+  white-space: nowrap; /* Prevent header text wrapping */
+}
+
+.table-custom tbody tr {
+  border-bottom: 1px solid var(--border-color);
+  transition: background-color 0.2s ease;
+}
+
+.table-custom tbody tr:last-child {
+  border-bottom: none; /* No border for the last row */
+}
+
+.table-custom tbody tr:hover {
+  background-color: var(--bg-hover);
+}
+
+.table-custom td {
+  padding: 12px 15px;
+  font-size: 0.95em;
+  color: var(--text-color);
+  white-space: nowrap; /* Prevent content wrapping in cells */
+}
+
+/* Specific styles for status badges within tables */
+.table-status-badge {
+  padding: 4px 10px;
+  border-radius: 9999px; /* Fully rounded corners */
+  font-size: 0.75em;
+  font-weight: 600;
+  text-transform: uppercase;
+  display: inline-block;
+  white-space: nowrap;
+}
+
+/* Example status badge colors (should align with theme colors) */
+.table-status-badge.active, .table-status-badge.completed {
+  background-color: var(--accent-color);
+  color: white;
+}
+.table-status-badge.pending, .table-status-badge.warning {
+  background-color: var(--warning-color);
+  color: white;
+}
+.table-status-badge.inactive, .table-status-badge.failed, .table-status-badge.danger {
+  background-color: var(--danger-color);
+  color: white;
+}
+
+
+/* ===============================
+    KPI Cards and Widgets
+    =============================== */
 .dashboard-widget-title {
   font-size: 1.3em;
   color: var(--secondary-color);
@@ -460,8 +837,6 @@ body {
   font-weight: 600;
 }
 
-
-/* KPI Cards (adapted from dashboard.css) */
 .kpi-cards-custom {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -470,7 +845,7 @@ body {
 }
 
 .kpi-card-custom {
-  background: var(--gradient-card);
+  background: var(--card-background);
   border-radius: 12px;
   padding: 25px;
   box-shadow: 0 6px 20px var(--shadow-medium);
@@ -489,6 +864,7 @@ body {
   box-shadow: 0 10px 30px var(--shadow-strong);
 }
 
+/* Radial shine effect for KPI cards on hover */
 .kpi-card-custom::before {
   content: '';
   position: absolute;
@@ -499,9 +875,11 @@ body {
   background: radial-gradient(circle at center, rgba(255, 255, 255, 0.15) 0%, transparent 70%);
   transform: scale(0);
   transition: transform 0.5s ease;
-  z-index: 1;
+  z-index: 1; /* Ensure this is above card content */
+  pointer-events: none; /* Prevents pseudo-element from blocking clicks */
 }
 
+/* Keyframes for radialShine */
 @keyframes radialShine {
   to {
     background: radial-gradient(circle at center, rgba(255, 255, 255, 0) 0%, transparent 70%);
@@ -557,65 +935,10 @@ body {
   color: var(--danger-color);
 }
 
-/* Action Button General Style (adapted from dashboard.css) */
-.action-button-custom {
-  background: var(--gradient-primary);
-  color: white;
-  border: none;
-  border-radius: 8px;
-  padding: 12px 20px;
-  font-size: 1em;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  box-shadow: 0 2px 8px var(--shadow-medium);
-  white-space: nowrap;
-  transition: all 0.3s ease;
-  overflow: hidden;
-  position: relative;
-}
 
-.action-button-custom:hover {
-  background-color: #2980b9;
-  box-shadow: 0 4px 15px var(--shadow-strong);
-  transform: translateY(-2px);
-}
-
-.action-button-custom::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 30%;
-  height: 100%;
-  background: rgba(255, 255, 255, 0.2);
-  transform: skewX(-20deg);
-  transition: transform 0.5s ease-out;
-}
-
-.action-button-custom:hover::before {
-  transform: translateX(100%) skewX(-20deg);
-}
-
-/* Form Actions (adapted from dashboard.css) */
-.form-actions-custom {
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-  margin-top: 25px;
-}
-
-.cancel-button-custom {
-  background-color: var(--light-text-color);
-}
-
-.cancel-button-custom:hover {
-  background-color: #6c7a89;
-}
-
-
-/* Responsive Design (adapted from dashboard.css) */
+/* ===============================
+    Responsive Design
+    =============================== */
 @media (max-width: 1200px) {
   .dashboard-title-custom {
     font-size: 1.5em;
@@ -630,30 +953,39 @@ body {
     flex-wrap: wrap;
     height: auto;
     padding-bottom: 10px;
+    padding-top: 10px; /* Ensure padding is consistent */
   }
-  .header-left-custom,
-  .header-right-custom {
+  /* Adjusted for better mobile display of header items */
+  .dashboard-header-custom > div { /* Target direct children of header */
     width: 100%;
+    display: flex;
     justify-content: center;
     margin-bottom: 10px;
   }
+  .dashboard-header-custom > div:last-child {
+      margin-bottom: 0;
+  }
+
   .searchbar-custom {
-    order: 3;
+    order: 3; /* Push search bar below icons on mobile */
     width: 90%;
     max-width: none;
     margin: 10px auto;
   }
+
   .sidebar-custom {
-    width: 100%;
-    height: auto;
+    width: 100%; /* Sidebar takes full width on smaller screens */
+    height: auto; /* Adjust height dynamically */
     border-right: none;
     border-bottom: 1px solid var(--border-color);
     box-shadow: 0 2px 5px var(--shadow-light);
     padding: 0;
   }
   .sidebar-custom.sidebar-collapsed {
-    width: 100%;
+    width: 100%; /* When collapsed on mobile, still full width */
   }
+
+  /* Horizontal scrolling menu for sidebar on mobile */
   .sidebar-menu-custom {
     display: flex;
     overflow-x: auto;
@@ -662,27 +994,40 @@ body {
     padding: 0 10px;
     justify-content: flex-start;
     border-radius: 0;
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
   }
+
+  /* Hide scrollbar for sidebar menu on webkit */
+  .sidebar-menu-custom::-webkit-scrollbar {
+    display: none;
+  }
+
   .sidebar-menu-item-custom {
-    flex-direction: column;
-    gap: 0px; /* Keep 0 for mobile layout */
+    flex-direction: column; /* Stack icon and text vertically */
+    gap: 5px; /* Small gap for vertical alignment */
     padding: 10px 15px;
     border-radius: 8px;
     margin-right: 5px;
-    margin-bottom: 10px;
-    min-width: 100px;
+    margin-bottom: 10px; /* Small margin for vertical stacking */
+    min-width: 100px; /* Ensure minimum width for touch targets */
     text-align: center;
-    border-radius: 8px;
-    transform: none;
+    transform: none; /* No translation in mobile */
   }
+
   /* On mobile, when sidebar is "collapsed" (i.e., horizontal), we still want text */
   @media (max-width: 992px) {
     .sidebar-custom.sidebar-collapsed .menu-text-custom {
-      display: block;
-      margin-left: 0; /* Reset negative margin for mobile */
+      display: block; /* Show text on collapsed mobile */
+      margin-left: 0; /* Reset margin */
     }
     .sidebar-menu-item-custom svg { /* Reset negative margin for icons on mobile horizontal menu */
         margin-right: 0;
+    }
+    /* Ensure icon and text are centered on mobile */
+    .sidebar-menu-item-custom {
+      align-items: center;
+      justify-content: center;
     }
   }
 

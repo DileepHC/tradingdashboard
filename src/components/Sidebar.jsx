@@ -7,11 +7,12 @@ import {
   ClipboardList,
   Mail,
   CreditCard,
-  Settings,
-  Shield,
-  LogOut,
+  Settings, // Re-import Settings for sidebar
+  LogOut, // Re-import LogOut for sidebar
+  Shield, // Re-import Shield for Auth Control
   ChevronRight,
-  ChevronDown
+  ChevronDown,
+  User // User icon for Profile (though Profile remains in Header)
 } from 'lucide-react';
 
 function Sidebar({ isCollapsed, setActiveModule, activeModule }) {
@@ -51,22 +52,23 @@ function Sidebar({ isCollapsed, setActiveModule, activeModule }) {
       module: 'users',
       hasSubMenu: true, // Indicates this item has a sub-menu
       subMenu: [ // Sub-menu items for 'Users'
-        { name: 'Main Users', module: 'users-main' },
+        { name: 'All Users', module: 'users-main' },
         { name: 'Paid Subscribers', module: 'users-paid' },
         { name: 'Demo Subscribers', module: 'users-demo' },
         { name: 'Daily Paid / Daily Demo', module: 'users-daily' },
       ]
     },
-    { name: 'Referral List', icon: ClipboardList, module: 'referral-list' },
+    { name: 'Referral List', icon: ClipboardList, module: 'referrals' }, // Corrected module name for consistency
     { name: 'Messages', icon: Mail, module: 'messages' },
     { name: 'Payments', icon: CreditCard, module: 'payments' },
+    // Profile is intentionally NOT here, as it's exclusively in the Header dropdown
   ];
 
   // Define menu items that appear at the bottom of the sidebar (e.g., settings, logout)
   const bottomMenuItems = [
-    { name: 'Settings', icon: Settings, module: 'settings' },
-    { name: 'Auth Control', icon: Shield, module: 'auth-control', adminOnly: true }, // Example for admin-only module
-    { name: 'Logout', icon: LogOut, module: 'logout' },
+    { name: 'Settings', icon: Settings, module: 'settings' }, // Settings is here
+    { name: 'Auth Control', icon: Shield, module: 'auth-control', adminOnly: true }, // Auth Control is here
+    { name: 'Logout', icon: LogOut, module: 'logout' }, // Logout is here
   ];
 
   return (
@@ -112,7 +114,6 @@ function Sidebar({ isCollapsed, setActiveModule, activeModule }) {
                   )}
                 </button>
               </li>
-              {/* Render sub-menu items if it has a sub-menu, is open, and sidebar is not collapsed */}
               {item.hasSubMenu && isUsersSubMenuOpen && !isCollapsed && (
                 <ul className="ml-8 mt-1 space-y-1 border-l border-border-base"> {/* Indented sub-menu with left border */}
                   {item.subMenu.map((subItem) => (
