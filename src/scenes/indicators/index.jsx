@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { PlusCircle, Edit, Trash2, X, Eye, Download, SlidersHorizontal } from 'lucide-react';
 
 /**
@@ -42,6 +42,29 @@ function Indicators({ data = [] }) {
   // State for Delete Confirmation Modal
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [indicatorToDelete, setIndicatorToDelete] = useState(null); // Stores the ID of the indicator to delete
+
+  // Dynamically generate indicatorTabs from indicatorsData
+  const indicatorTabs = useMemo(() => {
+    return indicatorsData.map(ind => ({
+      id: ind.id,
+      name: ind.name,
+      data: ind,
+    }));
+  }, [indicatorsData]);
+
+  // State to manage the currently active tab in the indicator details section.
+  const [activeTab, setActiveTab] = useState(indicatorTabs[0]?.id || null);
+
+  // Effect to set the active tab when indicatorsData changes (e.g., after adding/deleting)
+  useEffect(() => {
+    if (!activeTab && indicatorTabs.length > 0) {
+      // If no active tab is set and there are tabs, set the first one as active
+      setActiveTab(indicatorTabs[0].id);
+    } else if (activeTab && !indicatorTabs.some(tab => tab.id === activeTab)) {
+      // If the current active tab was deleted, set the first tab as active (or null if no tabs)
+      setActiveTab(indicatorTabs[0]?.id || null);
+    }
+  }, [indicatorsData, activeTab, indicatorTabs]);
 
 
   /**
@@ -204,6 +227,9 @@ function Indicators({ data = [] }) {
       setIndicatorsData([...indicatorsData, newIndicator]);
       console.log('New Indicator Added:', newIndicator);
     }
+
+    // Set the newly added/edited indicator as the active tab
+    setActiveTab(newIndicator.id);
 
     handleCloseForm(); // Close the form after submission.
   };
@@ -370,20 +396,6 @@ function Indicators({ data = [] }) {
     return sortConfig.direction === 'ascending' ? ' ▲' : ' ▼'; // Return appropriate icon with a leading space.
   };
 
-
-  // Dummy data for the tabbed display.
-  // Combines initial `data` with some hardcoded examples for demonstration.
-  // This array remains static for the demo tabs, separate from the editable table data.
-  const indicatorTabs = [
-    { id: 'ind1', name: 'RSI Divergence', data: data[0] }, // Using data from props
-    { id: 'ind2', name: 'Moving Average Crossover', data: data[1] },
-    { id: 'ind3', name: 'Bollinger Bands Squeeze', data: data[2] },
-    { id: 'ind4', name: 'Volume Analysis', data: {id:'IND004', name: 'Volume Analysis', imagePreview: 'https://placehold.co/150x100/A0A0F0/white?text=Vol', description: 'Tracks trading volume for confirmation.', associatedPlan: 'Premium'}},
-    { id: 'ind5', name: 'Trend Line Breakout', data: {id:'IND005', name: 'Trend Line', imagePreview: 'https://placehold.co/150x100/F0F0A0/white?text=Trend', description: 'Identifies breakouts from trend lines.', associatedPlan: 'Basic'}},
-  ];
-  // State to manage the currently active tab in the indicator details section.
-  const [activeTab, setActiveTab] = useState(indicatorTabs[0]?.id || null);
-
   return (
     <div className="p-4 sm:p-6 lg:p-8 space-y-8 bg-bg-base text-text-base">
       <h2 className="text-3xl font-bold text-secondary flex items-center gap-3">
@@ -486,7 +498,7 @@ function Indicators({ data = [] }) {
             {isColumnToggleOpen && (
               <div
                 id="indicator-list-column-toggle-dropdown"
-                className="absolute top-full right-0 mt-2 bg-card-bg border border-border-base rounded-lg shadow-strong z-10 p-4 min-w-[150px]"
+                className="column-toggle-dropdown-custom" // Using custom class from index.css
               >
                 {/* Dynamically render checkboxes for each column visibility */}
                 {Object.keys(visibleColumns).map(colKey => (
@@ -522,14 +534,14 @@ function Indicators({ data = [] }) {
         </div>
 
         {/* Main Indicator Table */}
-        <table className="min-w-full divide-y divide-border-base">
+        <table className="table-custom divide-y divide-border-base"> {/* Changed from min-w-full to table-custom */}
           <thead className="bg-bg-base">
             <tr>
-              {/* Conditionally render table headers based on column visibility */}
-              {visibleColumns.name && <th className="px-6 py-3 text-left text-xs font-medium text-text-light uppercase tracking-wider cursor-pointer" onClick={() => sortData('name')}>Name {getSortIcon('name')}</th>}
-              {visibleColumns.plan && <th className="px-6 py-3 text-left text-xs font-medium text-text-light uppercase tracking-wider cursor-pointer" onClick={() => sortData('plan')}>Plan {getSortIcon('plan')}</th>}
-              {visibleColumns.description && <th className="px-6 py-3 text-left text-xs font-medium text-text-light uppercase tracking-wider cursor-pointer" onClick={() => sortData('description')}>Description {getSortIcon('description')}</th>}
-              {visibleColumns.actions && <th className="px-6 py-3 text-right text-xs font-medium text-text-light uppercase tracking-wider">Actions</th>}
+              {/* Conditionally render table headers based on column visibility and apply fixed widths */}
+              {visibleColumns.name && <th style={{ width: '250px' }} className="px-6 py-3 text-left text-xs font-medium text-text-light uppercase tracking-wider cursor-pointer table-sticky-col" onClick={() => sortData('name')}>Name {getSortIcon('name')}</th>}
+              {visibleColumns.plan && <th style={{ width: '150px' }} className="px-6 py-3 text-left text-xs font-medium text-text-light uppercase tracking-wider cursor-pointer" onClick={() => sortData('plan')}>Plan {getSortIcon('plan')}</th>}
+              {visibleColumns.description && <th style={{ width: '400px' }} className="px-6 py-3 text-left text-xs font-medium text-text-light uppercase tracking-wider cursor-pointer" onClick={() => sortData('description')}>Description {getSortIcon('description')}</th>}
+              {visibleColumns.actions && <th style={{ width: '100px' }} className="px-6 py-3 text-left text-xs font-medium text-text-light uppercase tracking-wider">Actions</th>} {/* Changed text-right to text-left */}
             </tr>
           </thead>
           <tbody className="divide-y divide-border-base">
@@ -537,7 +549,7 @@ function Indicators({ data = [] }) {
             {sortedAndFilteredData.map((indicator, index) => (
               <tr key={indicator.id || index}>{/* Use id as key for better performance, fallback to index */}
                 {visibleColumns.name && (
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-text-base">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-text-base table-sticky-col">
                     <div className="flex items-center gap-2">
                       <img
                         src={indicator.imagePreview}
@@ -554,7 +566,7 @@ function Indicators({ data = [] }) {
                 {/* Truncate long descriptions to prevent layout issues */}
                 {visibleColumns.description && <td className="px-6 py-4 text-sm text-text-base max-w-xs truncate">{indicator.description}</td>}
                 {visibleColumns.actions && (
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-left"> {/* Removed flex, items-center, justify-end and changed text-right to text-left */}
                     {/* Edit button */}
                     <button
                       onClick={() => handleOpenForm(indicator)} // Pass the indicator object to pre-fill form
@@ -581,8 +593,8 @@ function Indicators({ data = [] }) {
 
       {/* Modal/Overlay for the Add/Edit Indicator Form */}
       {isFormOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-card-bg rounded-lg p-8 shadow-strong max-w-lg w-full relative">
+        <div className="modal"> {/* Changed className to "modal" */}
+          <div className="modal-content"> {/* Changed className to "modal-content" */}
             {/* Close button for the form modal */}
             <button
               onClick={handleCloseForm}

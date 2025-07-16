@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { SlidersHorizontal, Download, Trash2, Link, PlusCircle, Edit, X } from 'lucide-react'; // Removed Filter
+import { SlidersHorizontal, Download, Trash2, Link, PlusCircle, Edit, X } from 'lucide-react';
 
 /**
  * ReferralList component displays a table of all referral IDs and associated data.
@@ -206,7 +206,13 @@ function ReferralList({ data = [] }) {
    * @param {string} name - The current value of the referrer name input.
    */
   const validateReferrer = (name) => {
-    setFormErrors(prevErrors => ({ ...prevErrors, referrer: name.trim() ? '' : 'Referrer Name is required.' }));
+    let error = '';
+    if (!name.trim()) {
+      error = 'Referrer Name is required.';
+    } else if (name.length > 20) { // Max 20 characters
+      error = 'Referrer Name cannot exceed 20 characters.';
+    }
+    setFormErrors(prevErrors => ({ ...prevErrors, referrer: error }));
   };
 
   /**
@@ -245,6 +251,8 @@ function ReferralList({ data = [] }) {
     const errors = {};
     if (!referrer.trim()) {
       errors.referrer = 'Referrer Name is required.';
+    } else if (referrer.length > 20) {
+      errors.referrer = 'Referrer Name cannot exceed 20 characters.';
     }
     if (!countOfReferrals.trim() || isNaN(countOfReferrals) || parseInt(countOfReferrals) < 0) {
       errors.countOfReferrals = 'Count of Referrals is required and must be a non-negative number.';
@@ -271,7 +279,7 @@ function ReferralList({ data = [] }) {
       id: editReferral ? editReferral.id : `REF${Date.now()}`,
       referrer,
       countOfReferrals: parseInt(countOfReferrals),
-      commissionEarned: parseFloat(commissionEarned).toFixed(2), // Format to 2 decimal places
+      commissionEarned: `₹ ${parseFloat(commissionEarned).toFixed(2)}`, // Format to 2 decimal places with currency
       referralStatus,
     };
 
@@ -365,7 +373,7 @@ function ReferralList({ data = [] }) {
             {isColumnToggleOpen && (
               <div
                 id="referral-list-column-toggle-dropdown"
-                className="absolute top-full right-0 mt-2 bg-card-bg border border-border-base rounded-lg shadow-strong z-10 p-4 min-w-[150px]"
+                className="column-toggle-dropdown-custom" // Using custom class from index.css
               >
                 {/* Dynamically render checkboxes for each column visibility */}
                 {Object.keys(visibleColumns).map(colKey => (
@@ -400,23 +408,23 @@ function ReferralList({ data = [] }) {
         </div>
 
         {/* Referral List Table */}
-        <table className="min-w-full divide-y divide-border-base">
+        <table className="table-custom divide-y divide-border-base"> {/* Applied table-custom for styling */}
           <thead className="bg-bg-base">
             <tr>
-              {/* Conditionally render table headers based on column visibility */}
-              {visibleColumns.id && <th className="px-6 py-3 text-left text-xs font-medium text-text-light uppercase tracking-wider cursor-pointer" onClick={() => sortData('id')}>Referral ID {getSortIcon('id')}</th>}
-              {visibleColumns.referrer && <th className="px-6 py-3 text-left text-xs font-medium text-text-light uppercase tracking-wider cursor-pointer" onClick={() => sortData('referrer')}>Referrer Name {getSortIcon('referrer')}</th>}
-              {visibleColumns.countOfReferrals && <th className="px-6 py-3 text-left text-xs font-medium text-text-light uppercase tracking-wider cursor-pointer" onClick={() => sortData('countOfReferrals')}>Count of Referrals {getSortIcon('countOfReferrals')}</th>}
-              {visibleColumns.commissionEarned && <th className="px-6 py-3 text-left text-xs font-medium text-text-light uppercase tracking-wider cursor-pointer" onClick={() => sortData('commissionEarned')}>Commission Earned {getSortIcon('commissionEarned')}</th>}
-              {visibleColumns.referralStatus && <th className="px-6 py-3 text-left text-xs font-medium text-text-light uppercase tracking-wider cursor-pointer" onClick={() => sortData('referralStatus')}>Status {getSortIcon('referralStatus')}</th>}
-              {visibleColumns.actions && <th className="px-6 py-3 text-right text-xs font-medium text-text-light uppercase tracking-wider">Actions</th>}
+              {/* Conditionally render table headers based on column visibility and apply fixed widths */}
+              {visibleColumns.id && <th style={{ width: '150px' }} className="px-6 py-3 text-left text-xs font-medium text-text-light uppercase tracking-wider cursor-pointer table-sticky-col" onClick={() => sortData('id')}>Referral ID {getSortIcon('id')}</th>}
+              {visibleColumns.referrer && <th style={{ width: '200px' }} className="px-6 py-3 text-left text-xs font-medium text-text-light uppercase tracking-wider cursor-pointer" onClick={() => sortData('referrer')}>Referrer Name {getSortIcon('referrer')}</th>}
+              {visibleColumns.countOfReferrals && <th style={{ width: '150px' }} className="px-6 py-3 text-left text-xs font-medium text-text-light uppercase tracking-wider cursor-pointer" onClick={() => sortData('countOfReferrals')}>Count of Referrals {getSortIcon('countOfReferrals')}</th>}
+              {visibleColumns.commissionEarned && <th style={{ width: '150px' }} className="px-6 py-3 text-left text-xs font-medium text-text-light uppercase tracking-wider cursor-pointer" onClick={() => sortData('commissionEarned')}>Commission Earned {getSortIcon('commissionEarned')}</th>}
+              {visibleColumns.referralStatus && <th style={{ width: '100px' }} className="px-6 py-3 text-left text-xs font-medium text-text-light uppercase tracking-wider cursor-pointer" onClick={() => sortData('referralStatus')}>Status {getSortIcon('referralStatus')}</th>}
+              {visibleColumns.actions && <th style={{ width: '100px' }} className="px-6 py-3 text-left text-xs font-medium text-text-light uppercase tracking-wider">Actions</th>} {/* Changed text-right to text-left */}
             </tr>
           </thead>
           <tbody className="divide-y divide-border-base">
             {/* Map through the sorted and filtered data to render each referral row */}
             {sortedAndFilteredData.map((referral, index) => (
               <tr key={referral.id || index}>{/* Use id as key for better performance, fallback to index */}
-                {visibleColumns.id && <td className="px-6 py-4 whitespace-nowrap text-sm text-text-base">{referral.id}</td>}
+                {visibleColumns.id && <td className="px-6 py-4 whitespace-nowrap text-sm text-text-base table-sticky-col">{referral.id}</td>}
                 {visibleColumns.referrer && <td className="px-6 py-4 whitespace-nowrap text-sm text-text-base">{referral.referrer}</td>}
                 {visibleColumns.countOfReferrals && <td className="px-6 py-4 whitespace-nowrap text-sm text-text-base">{referral.countOfReferrals}</td>}
                 {visibleColumns.commissionEarned && <td className="px-6 py-4 whitespace-nowrap text-sm text-text-base">{referral.commissionEarned}</td>}
@@ -429,7 +437,7 @@ function ReferralList({ data = [] }) {
                   </span>
                 </td>}
                 {visibleColumns.actions && (
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-left"> {/* Changed text-right to text-left */}
                     {/* Edit button for referral row */}
                     <button
                       onClick={() => handleOpenForm(referral)}
@@ -456,8 +464,8 @@ function ReferralList({ data = [] }) {
 
       {/* Add/Edit Referral Form Modal */}
       {isFormOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-card-bg rounded-lg p-8 shadow-strong max-w-lg w-full relative">
+        <div className="modal">
+          <div className="modal-content">
             {/* Close button for the form modal */}
             <button
               onClick={handleCloseForm}
@@ -485,6 +493,7 @@ function ReferralList({ data = [] }) {
                     validateReferrer(e.target.value); // Real-time validation
                   }}
                   className={`w-full p-3 border rounded-md bg-bg-base text-text-base focus:ring-primary focus:border-primary outline-none ${formErrors.referrer ? 'border-danger' : 'border-border-base'}`}
+                  maxLength="20" // Added maxLength
                   required
                 />
                 {formErrors.referrer && <p className="text-danger text-xs mt-1">{formErrors.referrer}</p>}
@@ -553,8 +562,8 @@ function ReferralList({ data = [] }) {
 
       {/* Delete Confirmation Modal */}
       {showDeleteConfirm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-card-bg rounded-lg p-8 shadow-strong max-w-sm w-full relative text-center">
+        <div className="modal">
+          <div className="modal-content">
             <button
               onClick={cancelDelete}
               className="absolute top-4 right-4 text-text-light hover:text-danger transition-colors"

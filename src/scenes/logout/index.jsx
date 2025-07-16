@@ -1,24 +1,28 @@
-// scenes/logout/index.jsx
+// src/scenes/logout/index.jsx
 import React, { useEffect } from 'react';
 import { LogOut } from 'lucide-react';
 
 /**
  * Logout component handles the logout process.
  * In a real application, this would clear authentication tokens and redirect.
+ *
+ * @param {object} props - Component props.
+ * @param {function} props.setActiveModule - Function to set the active module in App.js for navigation.
  */
-function Logout() {
+function Logout({ setActiveModule }) {
   useEffect(() => {
     // Simulate logout process
     const timer = setTimeout(() => {
       console.log('User logged out. Clearing session data...');
       // In a real app:
       // - Clear auth tokens (e.g., localStorage.removeItem('authToken'))
-      // - Redirect to login page (e.g., history.push('/login'))
-      // For this demo, we'll just log it.
+      localStorage.removeItem('currentUser'); // Clear simulated user session
+      // Redirect to sign-in page
+      setActiveModule('signin');
     }, 1500); // Simulate a delay for logout processing
 
     return () => clearTimeout(timer); // Cleanup timer if component unmounts
-  }, []);
+  }, [setActiveModule]); // Dependency array includes setActiveModule
 
   return (
     <div className="p-8 flex flex-col items-center justify-center h-full bg-background-color text-text-base">

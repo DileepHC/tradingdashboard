@@ -1,40 +1,76 @@
-//https://airbnb.io/visx/gallery
+// src/components/AreaChart.jsx
+// npm install @visx/drag @visx/zoom d3-interpolate --legacy-peer-deps // You'll need to install these new dependencies
+
 import React, { useMemo, useCallback, useState, useRef } from 'react';
 import { AreaClosed, LinePath } from '@visx/shape';
 import { Group } from '@visx/group';
 import { scaleTime, scaleLinear } from '@visx/scale';
 import { AxisBottom, AxisLeft } from '@visx/axis';
 import { LinearGradient } from '@visx/gradient';
-import { Brush } from '@visx/brush';
-import { max, extent } from 'd3-array';
+import { max, extent, bisector } from 'd3-array'; // Import bisector for finding closest data point
 import { localPoint } from '@visx/event';
-import { withTooltip, TooltipWithBounds } from '@visx/tooltip';
-import { timeFormat } from 'd3-time-format';
+// Removed withTooltip and TooltipWithBounds as we're implementing a custom tooltip
+import { timeFormat } from 'd3-time-format'; // Corrected import for timeFormat
+import { timeWeek, timeMonth, timeDay } from 'd3-time'; // Corrected import for timeWeek, timeMonth, added timeDay
 import { ParentSize } from '@visx/responsive';
-import { curveMonotoneX } from '@visx/curve'; // Import a curve function
+import { curveMonotoneX } from '@visx/curve';
 
-import { Box, Typography, useTheme } from "@mui/material";
-import { tokens } from "../theme";
-import { mockRevenueOverTimeDataForBrush } from "../data/mockData"; // Ensure this path is correct
+import {
+  Box,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  Typography,
+  useTheme
+} from "@mui/material";
+import { tokens } from "../theme.js";
+import { mockDailyRevenueData } from "../data/mockData.js";
 
 // Data Accessors
-const getDate = (d) => new Date(d.date); // Ensure date is parsed as a Date object
+const getDate = (d) => new Date(d.date);
 const getRevenueValue = (d) => d.value;
-
-// Date formatters
-const formatBrushDate = timeFormat('%b %Y');
-const formatMainChartDate = timeFormat('%b %d, %Y');
-
-// Brush colors (can use theme colors too)
-const brushColor = '#a0aec0'; // Example default, ideally from theme
-const brushAccentColor = '#42a5f5'; // Example default, ideally from theme
 
 // Margin constants
 const MARGIN = { top: 20, right: 30, bottom: 80, left: 60 };
-const BRUSH_HEIGHT = 70;
+
+// Bisector for finding the closest data point
+const bisectDate = bisector(getDate).left;
+
+// Helper to aggregate daily data to weekly
+const aggregateDailyToWeekly = (dailyData) => {
+  const weeklyMap = new Map();
+  dailyData.forEach(d => {
+    const date = getDate(d);
+    const weekStart = timeWeek.floor(date);
+    const weekKey = timeFormat('%Y-W%U')(weekStart);
+
+    if (!weeklyMap.has(weekKey)) {
+      weeklyMap.set(weekKey, { date: weekStart, value: 0 });
+    }
+    weeklyMap.get(weekKey).value += getRevenueValue(d);
+  });
+  return Array.from(weeklyMap.values()).sort((a, b) => getDate(a).getTime() - getDate(b).getTime());
+};
+
+// Helper to aggregate daily data to monthly
+const aggregateDailyToMonthly = (dailyData) => {
+  const monthlyMap = new Map();
+  dailyData.forEach(d => {
+    const date = getDate(d);
+    const monthStart = timeMonth.floor(date);
+    const monthKey = timeFormat('%Y-%m')(monthStart);
+
+    if (!monthlyMap.has(monthKey)) {
+      monthlyMap.set(monthKey, { date: monthStart, value: 0 });
+    }
+    monthlyMap.get(monthKey).value += getRevenueValue(d);
+  });
+  return Array.from(monthlyMap.values()).sort((a, b) => getDate(a).getTime() - getDate(b).getTime());
+};
 
 // Inner component to encapsulate chart logic and hooks that depend on width/height
-function AreaChartContent({ width, height, title, showTooltip, hideTooltip, tooltipData, tooltipLeft, tooltipTop, tooltipOpen }) {
+function AreaChartContent({ width, height, tooltipProps, timeframe, selectedMonth, selectedWeek, weeksInSelectedMonth }) {
   const theme = useTheme();
   const colors = tokens(theme.palette.mode) || {};
 
@@ -42,265 +78,165 @@ function AreaChartContent({ width, height, title, showTooltip, hideTooltip, tool
   const primaryDark = colors.primary?.[400] ?? '#424242';
   const accentColor = colors.primary?.main ?? '#3498db';
 
-  const [filteredData, setFilteredData] = useState(mockRevenueOverTimeDataForBrush);
-  const brushRef = useRef(null);
+  // Destructure tooltip props from the parent
+  const { showTooltip, hideTooltip, tooltipData, tooltipLeft, tooltipTop, tooltipOpen } = tooltipProps;
 
-  const mainChartData = mockRevenueOverTimeDataForBrush; // Full dataset for brush
+  // Process data based on selected timeframe, month, and week
+  const processedData = useMemo(() => {
+    let data = mockDailyRevenueData;
 
-  // Ensure effective dimensions are non-negative
-  const mainChartWidth = Math.max(0, width - MARGIN.left - MARGIN.right);
-  const mainChartHeight = Math.max(0, height - MARGIN.top - MARGIN.bottom - BRUSH_HEIGHT - 20);
-
-  // Scales for the main chart (filtered data)
-  const xScale = useMemo(
-    () => {
-      const domainX = extent(filteredData, getDate);
-      // Fallback for empty filteredData to prevent NaN in scales if necessary
-      const finalDomainX = domainX[0] && domainX[1] ? domainX : [new Date(), new Date(Date.now() + 86400000)]; // Default to a day range
-      return scaleTime({
-        range: [0, mainChartWidth],
-        domain: finalDomainX,
+    // Filter by selected month first
+    if (selectedMonth !== '') {
+      const currentYear = new Date().getFullYear();
+      const monthStart = new Date(currentYear, selectedMonth, 1);
+      const monthEnd = new Date(currentYear, selectedMonth + 1, 0);
+      data = data.filter(d => {
+        const date = getDate(d);
+        return date >= monthStart && date <= monthEnd;
       });
-    },
-    [mainChartWidth, filteredData]
+    }
+
+    // Then filter by selected week if a week is chosen
+    if (selectedWeek !== '' && selectedMonth !== '') {
+      const weekInfo = weeksInSelectedMonth.find(w => w.value === selectedWeek);
+      if (weekInfo) {
+        data = data.filter(d => {
+          const date = getDate(d);
+          return date >= weekInfo.startDate && date <= weekInfo.endDate;
+        });
+      }
+    }
+
+    // Aggregate based on timeframe
+    switch (timeframe) {
+      case 'daily':
+        return data;
+      case 'weekly':
+        return aggregateDailyToWeekly(data);
+      case 'monthly':
+        return aggregateDailyToMonthly(data);
+      default:
+        return data;
+    }
+  }, [timeframe, selectedMonth, selectedWeek, weeksInSelectedMonth]);
+
+  const filteredData = processedData;
+
+  const mainChartRef = useRef(null);
+
+  // Dimensions for the main chart
+  const xMax = Math.max(0, width - MARGIN.left - MARGIN.right);
+  const yMax = Math.max(0, height - MARGIN.top - MARGIN.bottom);
+
+  // Scales for the main chart
+  const xScale = useMemo(
+    () =>
+      scaleTime({
+        range: [0, xMax],
+        domain: extent(filteredData, getDate),
+      }),
+    [xMax, filteredData],
   );
 
   const yScale = useMemo(
-    () => {
-      const maxVal = max(filteredData, getRevenueValue) || 0;
-      // Ensure the domain is not [0,0] which can cause issues with nice()
-      const domainY = [0, maxVal > 0 ? maxVal * 1.2 : 1];
-      return scaleLinear({
-        range: [mainChartHeight, 0],
-        domain: domainY,
+    () =>
+      scaleLinear({
+        range: [yMax, 0],
+        domain: [0, max(filteredData, getRevenueValue) || 0],
         nice: true,
-      });
-    },
-    [mainChartHeight, filteredData]
+      }),
+    [yMax, filteredData],
   );
 
-  // Scales for the brush chart (full data extent)
-  const brushXScale = useMemo(
-    () => {
-      const domainX = extent(mainChartData, getDate);
-      const finalDomainX = domainX[0] && domainX[1] ? domainX : [new Date(), new Date(Date.now() + 86400000)]; // Default to a day range
-      return scaleTime({
-        range: [0, mainChartWidth], // Brush chart also uses mainChartWidth
-        domain: finalDomainX,
-      });
-    },
-    [mainChartWidth, mainChartData]
-  );
-
-  const brushYScale = useMemo(
-    () => {
-      const maxVal = max(mainChartData, getRevenueValue) || 0;
-      const domainY = [0, maxVal > 0 ? maxVal * 1.2 : 1];
-      return scaleLinear({
-        range: [BRUSH_HEIGHT, 0],
-        domain: domainY,
-        nice: true,
-      });
-    },
-    [BRUSH_HEIGHT, mainChartData]
-  );
-
-  // Brush event handler
-  const handleBrushChange = useCallback(
-    (domain) => {
-      if (!domain) {
-        setFilteredData(mainChartData); // If brush is cleared, show all data
-        return;
-      }
-      const newFilteredData = mainChartData.filter((s) => {
-        const x = getDate(s).getTime();
-        return x >= domain.x[0].getTime() && x <= domain.x[1].getTime();
-      });
-      setFilteredData(newFilteredData);
-
-      // Optionally, if you want the main chart's Y-axis to dynamically adjust to the
-      // *brushed* data's max value, you would also trigger a re-render
-      // which is already handled by `setFilteredData` changing the dependency of yScale.
-    },
-    [mainChartData]
-  );
-
-  // Tooltip event handlers for the main chart
-  const handleMouseMove = useCallback(
+  // Tooltip event handlers
+  const handleTooltip = useCallback(
     (event) => {
-      // Ensure mainChartWidth is positive before inverse scale calculation
-      if (mainChartWidth < 1) return;
-
       const { x } = localPoint(event) || { x: 0 };
-      const x0 = xScale.invert(x - MARGIN.left);
+      const xCoordinate = x - MARGIN.left;
+      const x0 = xScale.invert(xCoordinate); // Date corresponding to cursor X
 
-      // Find the closest data point
-      const closestDatum = filteredData.reduce((prev, curr) => {
-        const prevDiff = Math.abs(getDate(prev).getTime() - x0.getTime());
-        const currDiff = Math.abs(getDate(curr).getTime() - x0.getTime());
-        return prevDiff < currDiff ? prev : curr;
-      });
+      // Find the index of the data point whose date is closest to x0
+      const index = bisectDate(filteredData, x0, 1);
 
-      showTooltip({
-        tooltipData: closestDatum,
-        tooltipLeft: xScale(getDate(closestDatum)) + MARGIN.left,
-        tooltipTop: yScale(getRevenueValue(closestDatum)) + MARGIN.top,
-      });
+      let d = null;
+      if (index < filteredData.length) {
+        // Check the point at 'index'
+        d = filteredData[index];
+      }
+      if (index > 0 && filteredData[index - 1]) {
+        // Also check the point before 'index'
+        const dPrev = filteredData[index - 1];
+        // If d is null (meaning index was 0) or if dPrev is closer to x0, use dPrev
+        if (!d || (Math.abs(x0.getTime() - getDate(dPrev).getTime()) < Math.abs(getDate(d).getTime() - x0.getTime()))) {
+          d = dPrev;
+        }
+      }
+
+      if (d) {
+        showTooltip({
+          tooltipData: d,
+          tooltipLeft: xScale(getDate(d)) + MARGIN.left,
+          tooltipTop: yScale(getRevenueValue(d)) + MARGIN.top,
+        });
+      } else {
+        hideTooltip();
+      }
     },
-    [showTooltip, xScale, yScale, filteredData, MARGIN.left, MARGIN.top, mainChartWidth]
+    [showTooltip, hideTooltip, xScale, yScale, filteredData],
   );
 
-  const handleMouseLeave = useCallback(() => {
-    hideTooltip();
-  }, [hideTooltip]);
+  // Date formatters based on timeframe
+  const formatAxisDate = useCallback((date) => {
+    switch (timeframe) {
+      case 'daily': return timeFormat('%b %d')(date);
+      case 'weekly': return `Week ${timeFormat('%U')(date)}`;
+      case 'monthly': return timeFormat('%b %Y')(date);
+      default: return timeFormat('%Y')(date);
+    }
+  }, [timeframe]);
 
-  // If width or height are too small, render nothing or a message
+  const formatTooltipDate = useCallback((date) => {
+    switch (timeframe) {
+      case 'daily': return timeFormat('%b %d, %Y')(date);
+      case 'weekly': return `Week ${timeFormat('%U, %Y')(date)}`;
+      case 'monthly': return timeFormat('%b %Y')(date);
+      default: return timeFormat('%Y')(date);
+    }
+  }, [timeframe]);
+
   if (width < 10 || height < 10) {
-    return (
-      <Box display="flex" justifyContent="center" alignItems="center" height="100%">
-        <Typography variant="body2" color={neutralDark}>
-          Chart too small to render.
-        </Typography>
-      </Box>
-    );
+    return null;
   }
-
 
   return (
     <svg width={width} height={height}>
-      {/* Background Rectangle with rounded corners, using theme's background.paper */}
-      <rect width={width} height={height} fill={colors.background.paper} rx={14} ry={14} />
+      <LinearGradient id="area-gradient" from={accentColor} fromOpacity={0.4} to={accentColor} toOpacity={0} />
 
-      {/* Main Chart Area */}
-      <Group left={MARGIN.left} top={MARGIN.top} onMouseMove={handleMouseMove} onMouseLeave={handleMouseLeave}>
-        <LinearGradient id="area-gradient" from={accentColor} to={colors.background.paper} />
-        {filteredData.length > 0 && ( // Only render if there's data
-            <>
-                <AreaClosed
-                    data={filteredData}
-                    x={(d) => xScale(getDate(d))}
-                    y={(d) => yScale(getRevenueValue(d))}
-                    yScale={yScale}
-                    fill="url(#area-gradient)"
-                    strokeWidth={1}
-                    stroke={accentColor}
-                    curve={curveMonotoneX}
-                />
-                <LinePath
-                    data={filteredData}
-                    x={(d) => xScale(getDate(d))}
-                    y={(d) => yScale(getRevenueValue(d))}
-                    stroke={accentColor}
-                    strokeWidth={2}
-                    curve={curveMonotoneX}
-                />
-            </>
-        )}
+      <Group left={MARGIN.left} top={MARGIN.top} ref={mainChartRef}>
+        <AreaClosed
+          data={filteredData}
+          x={(d) => xScale(getDate(d))}
+          y={(d) => yScale(getRevenueValue(d))}
+          yScale={yScale}
+          strokeWidth={2}
+          stroke={accentColor}
+          fill="url(#area-gradient)"
+          curve={curveMonotoneX}
+        />
 
-        {/* X-Axis for Main Chart */}
+        <LinePath
+          data={filteredData}
+          x={(d) => xScale(getDate(d))}
+          y={(d) => yScale(getRevenueValue(d))}
+          stroke={accentColor}
+          strokeWidth={2}
+          curve={curveMonotoneX}
+        />
+
         <AxisBottom
-          top={mainChartHeight}
+          top={yMax}
           scale={xScale}
-          numTicks={width > 768 ? 8 : 4}
-          tickFormat={formatMainChartDate}
-          stroke={neutralDark}
-          tickStroke={neutralDark}
-          tickLabelProps={() => ({
-            fill: neutralDark,
-            fontSize: 11,
-            textAnchor: 'middle',
-          })}
-        />
-
-        {/* Y-Axis for Main Chart */}
-        <AxisLeft
-          scale={yScale}
-          numTicks={5}
-          stroke={neutralDark}
-          tickStroke={neutralDark}
-          tickLabelProps={() => ({
-            fill: neutralDark,
-            fontSize: 11,
-            textAnchor: 'end',
-          })}
-          tickFormat={(value) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(value)}
-        />
-
-        {/* Tooltip Line (if tooltip is open) */}
-        {tooltipOpen && tooltipData && (
-          <Group>
-            <line
-              x1={xScale(getDate(tooltipData))}
-              y1={0}
-              x2={xScale(getDate(tooltipData))}
-              y2={mainChartHeight}
-              stroke={neutralDark}
-              strokeDasharray="2,2"
-            />
-            <circle
-              cx={xScale(getDate(tooltipData))}
-              cy={yScale(getRevenueValue(tooltipData))}
-              r={4}
-              fill={accentColor}
-              stroke="white"
-              strokeWidth={2}
-            />
-          </Group>
-        )}
-      </Group>
-
-      {/* Brush Chart Area */}
-      <Group left={MARGIN.left} top={MARGIN.top + mainChartHeight + 20}>
-        <LinearGradient id="brush-area-gradient" from={brushAccentColor} to={colors.background.paper} />
-        {mainChartData.length > 0 && ( // Only render if there's data
-            <>
-                <AreaClosed
-                    data={mainChartData}
-                    x={(d) => brushXScale(getDate(d))}
-                    y={(d) => brushYScale(getRevenueValue(d))}
-                    yScale={brushYScale}
-                    fill="url(#brush-area-gradient)"
-                    strokeWidth={1}
-                    stroke={brushAccentColor}
-                    curve={curveMonotoneX}
-                />
-                <LinePath
-                    data={mainChartData}
-                    x={(d) => brushXScale(getDate(d))}
-                    y={(d) => brushYScale(getRevenueValue(d))}
-                    stroke={brushAccentColor}
-                    strokeWidth={1}
-                    curve={curveMonotoneX}
-                />
-            </>
-        )}
-        <Brush
-          xScale={brushXScale}
-          yScale={brushYScale}
-          width={mainChartWidth} // This width is crucial and can cause negative rect errors
-          height={BRUSH_HEIGHT}
-          handleSize={8}
-          innerRef={brushRef}
-          resizeTriggerAreas={['left', 'right']}
-          brushDirection="horizontal"
-          onChange={handleBrushChange}
-          selectedBoxStyle={{
-            fill: accentColor,
-            fillOpacity: 0.2,
-            stroke: accentColor,
-            strokeWidth: 1,
-          }}
-        >
-          {/* Default brush handles are rendered if no custom renderBrush is provided. */}
-          {/* Leaving this empty <g> is fine if you're using default. */}
-          {(brush) => <g />}
-        </Brush>
-        {/* X-Axis for Brush Chart */}
-        <AxisBottom
-          top={BRUSH_HEIGHT}
-          scale={brushXScale}
-          numTicks={5}
-          tickFormat={formatBrushDate}
+          numTicks={width > 500 ? 10 : 5}
           stroke={neutralDark}
           tickStroke={neutralDark}
           tickLabelProps={() => ({
@@ -308,61 +244,347 @@ function AreaChartContent({ width, height, title, showTooltip, hideTooltip, tool
             fontSize: 10,
             textAnchor: 'middle',
           })}
+          tickFormat={formatAxisDate}
         />
-      </Group>
 
-      {/* Tooltip for Main Chart */}
-      {tooltipOpen && tooltipData && (
-        <TooltipWithBounds
-          top={tooltipTop}
-          left={tooltipLeft}
-          style={{
-            backgroundColor: primaryDark,
-            color: neutralDark, // Changed to neutralDark for better visibility based on your theme
-            borderRadius: '8px',
-            padding: '8px',
-            boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
-            transform: 'translate(-50%, -100%)',
-          }}
-        >
-          <div>
-            <strong>Date:</strong> {formatMainChartDate(getDate(tooltipData))}
-          </div>
-          <div>
-            <strong>Revenue:</strong> {new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(getRevenueValue(tooltipData))}
-          </div>
-        </TooltipWithBounds>
-      )}
+        <AxisLeft
+          scale={yScale}
+          stroke={neutralDark}
+          tickStroke={neutralDark}
+          tickLabelProps={() => ({
+            fill: neutralDark,
+            fontSize: 10,
+            textAnchor: 'end',
+            dx: '-0.25em',
+            dy: '0.25em',
+          })}
+          tickFormat={(value) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(value)}
+        />
+
+        <rect
+          x={0}
+          y={0}
+          width={xMax}
+          height={yMax}
+          fill="transparent"
+          onMouseMove={handleTooltip}
+          onMouseLeave={() => hideTooltip()}
+          onTouchStart={handleTooltip}
+          onTouchMove={handleTooltip}
+          onTouchEnd={() => hideTooltip()}
+        />
+
+        {tooltipOpen && tooltipData && (
+          <g>
+            <LinePath
+              data={[
+                { x: tooltipLeft - MARGIN.left, y: 0 },
+                { x: tooltipLeft - MARGIN.left, y: yMax },
+              ]}
+              x={(d) => d.x}
+              y={(d) => d.y}
+              stroke={primaryDark}
+              strokeWidth={1}
+              pointerEvents="none"
+              strokeDasharray="5,2"
+            />
+            <circle
+              cx={tooltipLeft - MARGIN.left}
+              cy={tooltipTop - MARGIN.top}
+              r={4}
+              fill={accentColor}
+              stroke="white"
+              strokeWidth={2}
+              pointerEvents="none"
+            />
+          </g>
+        )}
+      </Group>
     </svg>
   );
 }
 
-// Main AreaChart component (now a wrapper for ParentSize)
-function AreaChart({ title = "Revenue Over Time", ...tooltipProps }) { // Destructure tooltip props here
+// Main AreaChart component
+function AreaChart({ title = "Revenue Over Time" }) {
   const theme = useTheme();
   const colors = tokens(theme.palette.mode) || {};
   const neutralDark = colors.neutral?.dark ?? '#212121';
+  const accentColor = colors.primary?.main ?? '#3498db';
+  const primaryDark = colors.primary?.[400] ?? '#424242'; // Added for tooltip background
+  const cardBackground = colors['--card-background'] || '#ffffff';
+
+  const [timeframe, setTimeframe] = useState('monthly');
+  const [selectedMonth, setSelectedMonth] = useState('');
+  const [selectedWeek, setSelectedWeek] = useState('');
+
+  // State for custom tooltip
+  const [tooltipData, setTooltipData] = useState(null);
+  const [tooltipLeft, setTooltipLeft] = useState(0);
+  const [tooltipTop, setTooltipTop] = useState(0);
+  const [tooltipOpen, setTooltipOpen] = useState(false);
+
+  const tooltipProps = {
+    showTooltip: useCallback(({ tooltipData, tooltipLeft, tooltipTop }) => {
+      setTooltipData(tooltipData);
+      setTooltipLeft(tooltipLeft);
+      setTooltipTop(tooltipTop);
+      setTooltipOpen(true);
+    }, []),
+    hideTooltip: useCallback(() => {
+      setTooltipData(null);
+      setTooltipOpen(false);
+    }, []),
+    tooltipData,
+    tooltipLeft,
+    tooltipTop,
+    tooltipOpen,
+  };
+
+  // Generate a list of months for the dropdown
+  const months = useMemo(() => {
+    const monthNames = [];
+    const currentYear = new Date().getFullYear();
+    for (let i = 0; i < 12; i++) {
+      const date = new Date(currentYear, i, 1);
+      monthNames.push({ value: i, label: timeFormat('%b')(date) });
+    }
+    return monthNames;
+  }, []);
+
+  // Generate a list of weeks for the dropdown based on the selected month
+  const weeksInSelectedMonth = useMemo(() => {
+    if (selectedMonth === '') return [];
+
+    const weeks = [];
+    const currentYear = new Date().getFullYear();
+    const firstDayOfMonth = new Date(currentYear, selectedMonth, 1);
+    const lastDayOfMonth = new Date(currentYear, selectedMonth + 1, 0);
+
+    let currentWeekStart = timeWeek.floor(firstDayOfMonth);
+    let weekCounter = 1;
+
+    while (currentWeekStart <= lastDayOfMonth) {
+      const weekEnd = timeDay.offset(currentWeekStart, 6);
+      weeks.push({
+        value: weekCounter,
+        label: `Week ${weekCounter}`,
+        startDate: currentWeekStart,
+        endDate: weekEnd > lastDayOfMonth ? lastDayOfMonth : weekEnd
+      });
+      currentWeekStart = timeDay.offset(currentWeekStart, 7);
+      weekCounter++;
+    }
+    return weeks;
+  }, [selectedMonth]);
+
+    // Date formatters based on timeframe (moved here for tooltip outside AreaChartContent)
+    const formatTooltipDate = useCallback((date) => {
+      switch (timeframe) {
+        case 'daily': return timeFormat('%b %d, %Y')(date);
+        case 'weekly': return `Week ${timeFormat('%U, %Y')(date)}`;
+        case 'monthly': return timeFormat('%b %Y')(date);
+        default: return timeFormat('%Y')(date);
+      }
+    }, [timeframe]);
+
 
   return (
-    <Box>
-      <Typography variant="h6" color={neutralDark} align="center" mb="1rem">
-        {title}
-      </Typography>
-      <Box className="flex flex-col items-center justify-center p-4" height="400px">
+    <Box sx={{ position: 'relative' }}>
+      <div className="flex justify-between items-center mb-4 px-4">
+        <Typography variant="h6" color={neutralDark} sx={{ whiteSpace: 'nowrap', marginRight: '16px' }}>
+          {title}
+        </Typography>
+        <div className="flex space-x-2">
+          <FormControl
+            variant="outlined"
+            size="small"
+            sx={{
+              minWidth: 90,
+              backgroundColor: cardBackground,
+              borderRadius: '8px',
+              boxShadow: theme.palette.mode === 'dark' ? '0 2px 10px rgba(0,0,0,0.5)' : '0 2px 10px rgba(0,0,0,0.1)',
+              '& .MuiOutlinedInput-root': {
+                color: neutralDark,
+                '& fieldset': { borderColor: neutralDark },
+                '&:hover fieldset': { borderColor: accentColor, borderWidth: '2px' },
+                '&.Mui-focused fieldset': { borderColor: accentColor, borderWidth: '2px' },
+              },
+              '& .MuiInputLabel-root': { color: neutralDark },
+              '& .MuiSelect-icon': { color: neutralDark },
+            }}
+          >
+            <InputLabel id="timeframe-select-label">Timeframe</InputLabel>
+            <Select
+              labelId="timeframe-select-label"
+              value={timeframe}
+              onChange={(e) => {
+                setTimeframe(e.target.value);
+                setSelectedMonth('');
+                setSelectedWeek('');
+              }}
+              label="Timeframe"
+              sx={{
+                color: neutralDark,
+                '.MuiOutlinedInput-notchedOutline': { borderColor: neutralDark },
+                '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: accentColor },
+                '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: accentColor },
+                '.MuiSvgIcon-root': { color: neutralDark },
+              }}
+            >
+              <MenuItem value="daily">Daily</MenuItem>
+              <MenuItem value="weekly">Weekly</MenuItem>
+              <MenuItem value="monthly">Monthly</MenuItem>
+            </Select>
+          </FormControl>
+
+          {timeframe !== 'monthly' && (
+            <FormControl
+              variant="outlined"
+              size="small"
+              sx={{
+                minWidth: 90,
+                backgroundColor: cardBackground,
+                borderRadius: '8px',
+                boxShadow: theme.palette.mode === 'dark' ? '0 2px 10px rgba(0,0,0,0.5)' : '0 2px 10px rgba(0,0,0,0.1)',
+                '& .MuiOutlinedInput-root': {
+                  color: neutralDark,
+                  '& fieldset': { borderColor: neutralDark },
+                  '&:hover fieldset': { borderColor: accentColor, borderWidth: '2px' },
+                  '&.Mui-focused fieldset': { borderColor: accentColor, borderWidth: '2px' },
+                },
+                '& .MuiInputLabel-root': { color: neutralDark },
+                '& .MuiSelect-icon': { color: neutralDark },
+              }}
+            >
+              <InputLabel id="month-select-label">Month</InputLabel>
+              <Select
+                labelId="month-select-label"
+                value={selectedMonth}
+                onChange={(e) => {
+                  setSelectedMonth(e.target.value);
+                  setSelectedWeek('');
+                }}
+                label="Month"
+                sx={{
+                  color: neutralDark,
+                  '.MuiOutlinedInput-notchedOutline': { borderColor: neutralDark },
+                  '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: accentColor },
+                  '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: accentColor },
+                  '.MuiSvgIcon-root': { color: neutralDark },
+                }}
+              >
+                <MenuItem value=""><em>All</em></MenuItem>
+                {months.map((month) => (
+                  <MenuItem key={month.value} value={month.value}>
+                    {month.label}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          )}
+
+          {timeframe === 'daily' && selectedMonth !== '' && (
+            <FormControl
+              variant="outlined"
+              size="small"
+              sx={{
+                minWidth: 90,
+                backgroundColor: cardBackground,
+                borderRadius: '8px',
+                boxShadow: theme.palette.mode === 'dark' ? '0 2px 10px rgba(0,0,0,0.5)' : '0 2px 10px rgba(0,0,0,0.1)',
+                '& .MuiOutlinedInput-root': {
+                  color: neutralDark,
+                  '& fieldset': { borderColor: neutralDark },
+                  '&:hover fieldset': { borderColor: accentColor, borderWidth: '2px' },
+                  '&.Mui-focused fieldset': { borderColor: accentColor, borderWidth: '2px' },
+                },
+                '& .MuiInputLabel-root': { color: neutralDark },
+                '& .MuiSelect-icon': { color: neutralDark },
+              }}
+              disabled={selectedMonth === ''}
+            >
+              <InputLabel id="week-select-label">Week</InputLabel>
+              <Select
+                labelId="week-select-label"
+                value={selectedWeek}
+                onChange={(e) => setSelectedWeek(e.target.value)}
+                label="Week"
+                sx={{
+                  color: neutralDark,
+                  '.MuiOutlinedInput-notchedOutline': { borderColor: neutralDark },
+                  '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: accentColor },
+                  '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: accentColor },
+                  '.MuiSvgIcon-root': { color: neutralDark },
+                }}
+              >
+                <MenuItem value=""><em>All</em></MenuItem>
+                {weeksInSelectedMonth.map((week) => (
+                  <MenuItem key={week.value} value={week.value}>
+                    {week.label}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          )}
+        </div>
+      </div>
+
+      <Box className="flex flex-col items-center justify-center p-4" height="400px" sx={{ position: 'relative' }}>
         <ParentSize>
           {({ width, height }) => (
             <AreaChartContent
               width={width}
               height={height}
-              title={title}
-              {...tooltipProps} // Spread all tooltip props down
+              timeframe={timeframe}
+              selectedMonth={selectedMonth}
+              selectedWeek={selectedWeek}
+              weeksInSelectedMonth={weeksInSelectedMonth}
+              tooltipProps={tooltipProps} // Pass tooltip props down
             />
           )}
         </ParentSize>
+
+        {/* Custom Tooltip rendered directly in the parent Box */}
+        {tooltipOpen && tooltipData && (
+          <div
+            style={{
+              position: 'absolute',
+              top: tooltipTop,
+              left: tooltipLeft,
+              backgroundColor: primaryDark, // Use primaryDark for background
+              color: 'white',
+              padding: '8px 12px',
+              borderRadius: '4px',
+              fontSize: '12px',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+              pointerEvents: 'none', // Ensure tooltip doesn't block mouse events
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'flex-start',
+              gap: '4px',
+              zIndex: 1000,
+              transform: 'translate(-50%, -100%)', // Adjust to position above and centered on the point
+              whiteSpace: 'nowrap', // Prevent text from wrapping
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center' }}>
+              <span style={{ width: '10px', height: '10px', backgroundColor: accentColor, borderRadius: '50%', marginRight: '8px' }}></span>
+              <span>
+                <strong style={{ color: 'white' }}>x:</strong> {formatTooltipDate(getDate(tooltipData))}
+              </span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center' }}>
+              <span style={{ width: '10px', height: '10px', backgroundColor: accentColor, borderRadius: '50%', marginRight: '8px' }}></span>
+              <span>
+                <strong style={{ color: 'white' }}>y:</strong> {new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(getRevenueValue(tooltipData))}
+              </span>
+            </div>
+          </div>
+        )}
       </Box>
     </Box>
   );
 }
 
-// This needs to be wrapped with withTooltip at the outer level, not the inner
-export default withTooltip(AreaChart);
+// Removed withTooltip HOC as we are managing tooltip state directly
+export default AreaChart;

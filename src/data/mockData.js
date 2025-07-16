@@ -1,4 +1,5 @@
-// data/mockData.js
+// src/data/mockData.js
+import { timeFormat } from 'd3-time-format'; // Import timeFormat for use in data generation
 
 /**
  * @typedef {Object} KpiData
@@ -42,12 +43,14 @@
  * @typedef {Object} UserData
  * @property {string} userId - Unique user ID.
  * @property {string} tradingViewId - TradingView ID.
+ * @property {string} name - User's name. // Added name property
  * @property {string} phoneEmail - Phone number or email.
  * @property {string} referralId - Optional referral ID.
  * @property {string} plan - User's plan (e.g., "Paid", "Demo").
  * @property {string} expiryDate - Expiry date of the plan.
  * @property {number} remainingDays - Remaining days on the plan.
  * @property {string} status - User status (e.g., "Active", "Inactive").
+ * @property {string} joinedDate - Date the user joined. // Added joinedDate property
  */
 
 /**
@@ -155,22 +158,26 @@ export const dashboardData = {
   ],
   users: {
     mainUsers: [
-      { userId: 'USR001', tradingViewId: 'TV1234', phoneEmail: 'user1@example.com', referralId: 'REF001', plan: 'Paid', expiryDate: '2025-12-31', remainingDays: 160, status: 'Active' },
-      { userId: 'USR002', tradingViewId: 'TV5678', phoneEmail: 'user2@example.com', referralId: '', plan: 'Demo', expiryDate: '2024-08-15', remainingDays: 20, status: 'Inactive' },
-      { userId: 'USR003', tradingViewId: 'TV9101', phoneEmail: 'user3@example.com', referralId: 'REF002', plan: 'Paid', expiryDate: '2026-06-30', remainingDays: 365, status: 'Active' },
-      { userId: 'USR004', tradingViewId: 'TV1121', phoneEmail: 'user4@example.com', referralId: '', plan: 'Demo', expiryDate: '2024-07-28', remainingDays: 3, status: 'Active' },
+      { userId: 'USR001', tradingViewId: 'TV1234', name: 'Alice Smith', phoneEmail: 'user1@example.com', referralId: 'REF001', plan: 'Paid', expiryDate: '2025-12-31', remainingDays: 160, status: 'Active', joinedDate: '2024-01-10' },
+      { userId: 'USR002', tradingViewId: 'TV5678', name: 'Bob Johnson', phoneEmail: 'user2@example.com', referralId: '', plan: 'Demo', expiryDate: '2024-08-15', remainingDays: 20, status: 'Inactive', joinedDate: '2024-02-20' },
+      { userId: 'USR003', tradingViewId: 'TV9101', name: 'Charlie Brown', phoneEmail: 'user3@example.com', referralId: 'REF002', plan: 'Paid', expiryDate: '2026-06-30', remainingDays: 365, status: 'Active', joinedDate: '2024-03-05' },
+      { userId: 'USR004', tradingViewId: 'TV1121', name: 'Diana Prince', phoneEmail: 'user4@example.com', referralId: '', plan: 'Demo', expiryDate: '2024-07-28', remainingDays: 3, status: 'Active', joinedDate: '2024-04-12' },
     ],
     paidSubscribers: [
-      { userId: 'USR001', tradingViewId: 'TV1234', phoneEmail: 'user1@example.com', referralId: 'REF001', plan: 'Paid', expiryDate: '2025-12-31', remainingDays: 160, status: 'Active' },
-      { userId: 'USR003', tradingViewId: 'TV9101', phoneEmail: 'user3@example.com', referralId: 'REF002', plan: 'Paid', expiryDate: '2026-06-30', remainingDays: 365, status: 'Active' },
+      { userId: 'USR001', tradingViewId: 'TV1234', name: 'Alice Smith', phoneEmail: 'user1@example.com', referralId: 'REF001', plan: 'Paid', expiryDate: '2025-12-31', remainingDays: 160, status: 'Active', joinedDate: '2024-01-10' },
+      { userId: 'USR003', tradingViewId: 'TV9101', name: 'Charlie Brown', phoneEmail: 'user3@example.com', referralId: 'REF002', plan: 'Paid', expiryDate: '2026-06-30', remainingDays: 365, status: 'Active', joinedDate: '2024-03-05' },
+      { userId: 'USR006', tradingViewId: 'TV4455', name: 'Frank White', phoneEmail: 'newuser2@example.com', referralId: 'REF003', plan: 'Paid', expiryDate: '2025-07-24', remainingDays: 365, status: 'Active', joinedDate: '2024-07-20' }, // Added joinedDate
     ],
     demoSubscribers: [
-      { userId: 'USR002', tradingViewId: 'TV5678', phoneEmail: 'user2@example.com', referralId: '', plan: 'Demo', expiryDate: '2024-08-15', remainingDays: 20, status: 'Inactive' },
-      { userId: 'USR004', tradingViewId: 'TV1121', phoneEmail: 'user4@example.com', referralId: '', plan: 'Demo', expiryDate: '2024-07-28', remainingDays: 3, status: 'Active' },
+      { userId: 'USR002', tradingViewId: 'TV5678', name: 'Bob Johnson', phoneEmail: 'user2@example.com', referralId: '', plan: 'Demo', expiryDate: '2024-08-15', remainingDays: 20, status: 'Inactive', joinedDate: '2024-02-20' },
+      { userId: 'USR004', tradingViewId: 'TV1121', name: 'Diana Prince', phoneEmail: 'user4@example.com', referralId: '', plan: 'Demo', expiryDate: '2024-07-28', remainingDays: 3, status: 'Active', joinedDate: '2024-04-12' },
+      { userId: 'USR005', tradingViewId: 'TV2233', name: 'Eve Adams', phoneEmail: 'newuser1@example.com', referralId: '', plan: 'Demo', expiryDate: '2024-08-25', remainingDays: 30, status: 'Active', joinedDate: '2024-07-26' }, // Added joinedDate
     ],
     dailyNewSubscribers: [
-      { userId: 'USR005', tradingViewId: 'TV2233', phoneEmail: 'newuser1@example.com', referralId: '', plan: 'Demo', expiryDate: '2024-08-25', remainingDays: 30, status: 'Active' },
-      { userId: 'USR006', tradingViewId: 'TV4455', phoneEmail: 'newuser2@example.com', referralId: 'REF003', plan: 'Paid', expiryDate: '2025-07-24', remainingDays: 365, status: 'Active' },
+      { userId: 'USR005', tradingViewId: 'TV2233', name: 'Eve Adams', phoneEmail: 'newuser1@example.com', referralId: '', plan: 'Demo', expiryDate: '2024-08-25', remainingDays: 30, status: 'Active', joinedDate: '2024-07-26' },
+      { userId: 'USR006', tradingViewId: 'TV4455', name: 'Frank White', phoneEmail: 'newuser2@example.com', referralId: 'REF003', plan: 'Paid', expiryDate: '2025-07-24', remainingDays: 365, status: 'Active', joinedDate: '2024-07-20' },
+      { userId: 'USR007', tradingViewId: 'TV6789', name: 'Grace Lee', phoneEmail: 'newuser3@example.com', referralId: '', plan: 'Demo', expiryDate: '2024-09-10', remainingDays: 45, status: 'Active', joinedDate: '2024-07-27' },
+      { userId: 'USR008', tradingViewId: 'TV9876', name: 'Harry Potter', phoneEmail: 'newuser4@example.com', referralId: 'REF004', plan: 'Paid', expiryDate: '2025-08-01', remainingDays: 370, status: 'Active', joinedDate: '2024-07-28' },
     ],
   },
   referrals: [
@@ -184,9 +191,9 @@ export const dashboardData = {
     { id: 3, sender: 'User A', text: 'When is the next webinar?', timestamp: '2024-07-26 11:30 AM' },
   ],
   payments: [
-    { id: 'PAY001', upiUsed: 'userx@upi', user: 'User X', amount: '₹ 999.00', date: '2024-07-20', status: 'Completed' },
-    { id: 'PAY002', upiUsed: 'usery@upi', user: 'User Y', amount: '₹ 4999.00', date: '2024-07-15', status: 'Completed' },
-    { id: 'PAY003', upiUsed: 'userz@upi', user: 'User Z', amount: '₹ 999.00', date: '2024-07-22', status: 'Pending' },
+    { id: 'PAY001', upiUsed: 'userx@upi', user: 'User X', amount: '999.00', date: '2024-07-20', status: 'Completed' },
+    { id: 'PAY002', upiUsed: 'usery@upi', user: 'User Y', amount: '4999.00', date: '2024-07-15', status: 'Completed' },
+    { id: 'PAY003', upiUsed: 'userz@upi', user: 'User Z', amount: '999.00', date: '2024-07-22', status: 'Pending' },
   ],
   settings: {
     demoModeVisible: true,
@@ -209,99 +216,115 @@ export const dashboardData = {
   },
 };
 
-// Data for Nivo Line Chart (mockLineData)
+// Helper function to generate a date string for a given day
+const formatDate = (date) => date.toISOString().split('T')[0];
+
+// Generate mock data for a full year (365 days)
+const generateDailyData = (year) => {
+  const data = [];
+  const startDate = new Date(`${year}-01-01T00:00:00Z`);
+  const today = new Date(); // Get current date
+  today.setHours(0, 0, 0, 0); // Normalize to start of day for comparison
+
+  for (let i = 0; ; i++) { // Loop indefinitely
+    const currentDate = new Date(startDate);
+    currentDate.setDate(startDate.getDate() + i);
+
+    // Stop if the current date is in the future
+    if (currentDate > today) {
+      break;
+    }
+
+    data.push({
+      date: formatDate(currentDate),
+      value: Math.floor(Math.random() * 5000) + 1000, // Revenue between 1000 and 6000
+    });
+  }
+  return data;
+};
+
+// Generate daily new paid and demo subscribers data
+const generateDailySubscribersData = (year) => {
+  const paidData = [];
+  const demoData = [];
+  const startDate = new Date(`${year}-01-01T00:00:00Z`);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  for (let i = 0; ; i++) {
+    const currentDate = new Date(startDate);
+    currentDate.setDate(startDate.getDate() + i);
+
+    if (currentDate > today) {
+      break;
+    }
+
+    paidData.push({
+      x: formatDate(currentDate),
+      y: Math.floor(Math.random() * 10) + 1, // 1-10 new paid users daily
+    });
+    demoData.push({
+      x: formatDate(currentDate),
+      y: Math.floor(Math.random() * 15) + 5, // 5-20 new demo users daily
+    });
+  }
+  return { paidData, demoData };
+};
+
+// Aggregate daily data to weekly
+const aggregateDailyToWeeklySubscribers = (dailyData) => {
+  const weeklyMap = new Map();
+  dailyData.forEach(d => {
+    const date = new Date(d.x);
+    const weekStart = new Date(date.getFullYear(), date.getMonth(), date.getDate() - date.getDay()); // Sunday start of week
+    const weekKey = `${weekStart.getFullYear()}-${weekStart.getMonth()}-${weekStart.getDate()}`;
+
+    if (!weeklyMap.has(weekKey)) {
+      // Use timeFormat for consistent week labeling
+      weeklyMap.set(weekKey, { x: timeFormat('%b %d')(weekStart), y: 0 });
+    }
+    weeklyMap.get(weekKey).y += d.y;
+  });
+  // Sort by date to ensure correct order
+  return Array.from(weeklyMap.values()).sort((a, b) => new Date(a.x).getTime() - new Date(b.x).getTime());
+};
+
+// Aggregate daily data to monthly
+const aggregateDailyToMonthlySubscribers = (dailyData) => {
+  const monthlyMap = new Map();
+  dailyData.forEach(d => {
+    const date = new Date(d.x);
+    const monthStart = new Date(date.getFullYear(), date.getMonth(), 1);
+    const monthKey = `${monthStart.getFullYear()}-${monthStart.getMonth()}`;
+
+    if (!monthlyMap.has(monthKey)) {
+      monthlyMap.set(monthKey, { x: timeFormat('%b %Y')(monthStart), y: 0 });
+    }
+    monthlyMap.get(monthKey).y += d.y;
+  });
+  // Sort by date to ensure correct order
+  return Array.from(monthlyMap.values()).sort((a, b) => new Date(a.x).getTime() - new Date(b.x).getTime());
+};
+
+
+const { paidData: dailyPaidUsers, demoData: dailyDemoUsers } = generateDailySubscribersData(new Date().getFullYear());
+
 export const mockLineData = [
   {
-    id: "Daily Users",
+    id: "Paid Users",
     color: "hsl(210, 70%, 50%)",
-    data: [
-      { x: "2024-06-20", y: 10 },
-      { x: "2024-06-21", y: 15 },
-      { x: "2024-06-22", y: 8 },
-      { x: "2024-06-23", y: 12 },
-      { x: "2024-06-24", y: 20 },
-      { x: "2024-06-25", y: 18 },
-      { x: "2024-06-26", y: 25 },
-      { x: "2024-06-27", y: 22 },
-      { x: "2024-06-28", y: 28 },
-      { x: "2024-06-29", y: 30 },
-      { x: "2024-06-30", y: 25 },
-    ],
+    data: dailyPaidUsers,
   },
   {
-    id: "Weekly Users",
-    color: "hsl(120, 70%, 50%)",
-    data: [
-      { x: "Week 1", y: 70 },
-      { x: "Week 2", y: 85 },
-      { x: "Week 3", y: 60 },
-      { x: "Week 4", y: 90 },
-      { x: "Week 5", y: 110 },
-      { x: "Week 6", y: 105 },
-      { x: "Week 7", y: 130 },
-      { x: "Week 8", y: 120 },
-    ],
-  },
-  {
-    id: "Monthly Users",
+    id: "Demo Users",
     color: "hsl(0, 70%, 50%)",
-    data: [
-      { x: "Jan", y: 300 },
-      { x: "Feb", y: 320 },
-      { x: "Mar", y: 350 },
-      { x: "Apr", y: 380 },
-      { x: "May", y: 420 },
-      { x: "Jun", y: 450 },
-      { x: "Jul", y: 400 },
-      { x: "Aug", y: 480 },
-      { x: "Sep", y: 520 },
-      { x: "Oct", y: 550 },
-      { x: "Nov", y: 600 },
-      { x: "Dec", y: 650 },
-    ],
+    data: dailyDemoUsers,
   },
 ];
 
+// Base daily revenue data for the Area Chart
+export const mockDailyRevenueData = generateDailyData(new Date().getFullYear());
 
-// Data for Area Chart (Visx-compatible structure)
-export const mockAreaChartData = {
-  daily: [
-    { date: '2024-01-01', value: 1000 },
-    { date: '2024-01-02', value: 1200 },
-    { date: '2024-01-03', value: 900 },
-    { date: '2024-01-04', value: 1500 },
-    { date: '2024-01-05', value: 1100 },
-    { date: '2024-01-06', value: 1800 },
-    { date: '2024-01-07', value: 1400 },
-    { date: '2024-01-08', value: 2000 },
-    { date: '2024-01-09', value: 1600 },
-    { date: '2024-01-10', value: 2200 },
-  ],
-  weekly: [
-    { date: '2024-W01', value: 7000 },
-    { date: '2024-W02', value: 8500 },
-    { date: '2024-W03', value: 6000 },
-    { date: '2024-W04', value: 9000 },
-    { date: '2024-W05', value: 11000 },
-    { date: '2024-W06', value: 10500 },
-    { date: '2024-W07', value: 13000 },
-    { date: '2024-W08', value: 12000 },
-  ],
-  monthly: [
-    { date: '2024-01', value: 30000 },
-    { date: '2024-02', value: 32000 },
-    { date: '2024-03', value: 35000 },
-    { date: '2024-04', value: 38000 },
-    { date: '2024-05', value: 42000 },
-    { date: '2024-06', value: 45000 },
-    { date: '2024-07', value: 40000 },
-    { date: '2024-08', value: 48000 },
-    { date: '2024-09', value: 52000 },
-    { date: '2024-10', value: 55000 },
-    { date: '2024-11', value: 60000 },
-    { date: '2024-12', value: 65000 },
-  ],
-};
 
 // Data for nested Pie Chart (Visx-compatible structure) - Updated for drill-down
 export const mockNestedPieData = {
@@ -339,31 +362,6 @@ export const mockNestedPieData = {
   ],
 };
 
-// Data for Visx Area Chart with Brush - Updated for Revenue Over Time
-export const mockRevenueOverTimeDataForBrush = (() => {
-  const data = [];
-  const startDate = new Date('2022-01-01');
-  const endDate = new Date('2025-06-26'); // Today's date
-
-  let currentDate = new Date(startDate);
-  let baseValue = 30000; // Starting revenue similar to your monthly
-  let fluctuation = 5000; // Max fluctuation
-
-  while (currentDate <= endDate) {
-    // Simulate a general upward trend with daily fluctuations
-    const value = baseValue + Math.random() * fluctuation - (fluctuation / 2);
-    data.push({ date: new Date(currentDate), value: Math.round(value) });
-
-    // Gradually increase baseValue to simulate growth
-    baseValue += (Math.random() - 0.5) * 100; // Small daily increment/decrement
-    if (baseValue < 25000) baseValue = 25000; // Prevent going too low
-    if (baseValue > 70000) baseValue = 70000; // Prevent going too high
-
-    currentDate.setDate(currentDate.getDate() + 1); // Move to next day
-  }
-  return data;
-})();
-
 // New data for Visx Bar Chart (e.g., monthly referral commissions)
 export const mockMonthlyBarData = [
   { month: 'Jan', commission: 2500 },
@@ -378,4 +376,16 @@ export const mockMonthlyBarData = [
   { month: 'Oct', commission: 4100 },
   { month: 'Nov', commission: 4800 },
   { month: 'Dec', commission: 5000 },
+];
+
+export const mockWeeklyPaidUsers = aggregateDailyToWeeklySubscribers(dailyPaidUsers);
+export const mockMonthlyPaidUsers = aggregateDailyToMonthlySubscribers(dailyPaidUsers);
+export const mockWeeklyDemoUsers = aggregateDailyToWeeklySubscribers(dailyDemoUsers);
+export const mockMonthlyDemoUsers = aggregateDailyToMonthlySubscribers(dailyDemoUsers);
+
+// Dummy names for the Name column
+export const dummyNames = [
+  "Alice Smith", "Bob Johnson", "Charlie Brown", "Diana Prince", "Eve Adams",
+  "Frank White", "Grace Lee", "Harry Potter", "Ivy Green", "Jack Black",
+  "Karen King", "Liam Scott", "Mia Taylor", "Noah Clark", "Olivia Hall"
 ];

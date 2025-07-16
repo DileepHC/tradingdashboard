@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Edit, Trash2, SlidersHorizontal, Download, Users, PlusCircle, X } from 'lucide-react'; // Added PlusCircle and X
+import { Edit, Trash2, SlidersHorizontal, Download, Users, PlusCircle, X } from 'lucide-react';
+import { dummyNames } from '../../data/mockData'; // Import dummyNames
 
 /**
  * MainUsers component displays a table of all users (paid/demo).
@@ -20,9 +21,9 @@ function MainUsers({ data = [] }) {
   const [visibleColumns, setVisibleColumns] = useState({
     userId: true,
     tradingViewId: true,
-    name: true, // Added name column for consistency with DailyPaidDemo
+    name: true,
     phoneEmail: true,
-    referralId: true,
+    referralId: false, // Hidden by default, like in PaidSubscribers.jsx
     plan: true,
     expiryDate: true,
     remainingDays: true,
@@ -35,7 +36,7 @@ function MainUsers({ data = [] }) {
   // States for the Add/Edit User Form Modal
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editUser, setEditUser] = useState(null); // Stores the user object being edited
-  const [formErrors, setFormErrors] = useState({}); // Corrected: Initialized with useState
+  const [formErrors, setFormErrors] = useState({});
 
   // Form input states
   const [tradingViewId, setTradingViewId] = useState('');
@@ -44,6 +45,7 @@ function MainUsers({ data = [] }) {
   const [referralId, setReferralId] = useState('');
   const [planType, setPlanType] = useState('Demo'); // Default new user to 'Demo' plan
   const [expiryDate, setExpiryDate] = useState(''); // Expiry date for paid plans
+
 
   // State for Delete Confirmation Modal
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -78,6 +80,22 @@ function MainUsers({ data = [] }) {
     .sort((a, b) => {
       // Apply sorting logic only if a sort key is set.
       if (sortConfig.key) {
+        // Handle sorting for expiryDate and remainingDays as numbers
+        if (sortConfig.key === 'expiryDate') {
+          const dateA = new Date(a[sortConfig.key]).getTime();
+          const dateB = new Date(b[sortConfig.key]).getTime();
+          if (dateA < dateB) return sortConfig.direction === 'ascending' ? -1 : 1;
+          if (dateA > dateB) return sortConfig.direction === 'ascending' ? 1 : -1;
+          return 0;
+        }
+        if (sortConfig.key === 'remainingDays') {
+          const daysA = typeof a[sortConfig.key] === 'number' ? a[sortConfig.key] : -Infinity;
+          const daysB = typeof b[sortConfig.key] === 'number' ? b[sortConfig.key] : -Infinity;
+          if (daysA < daysB) return sortConfig.direction === 'ascending' ? -1 : 1;
+          if (daysA > daysB) return sortConfig.direction === 'ascending' ? 1 : -1;
+          return 0;
+        }
+
         // Convert values to lowercase strings for case-insensitive comparison.
         // Provide a default empty string for potential null/undefined values to prevent errors.
         const valA = String(a[sortConfig.key] || '').toLowerCase();
@@ -131,7 +149,17 @@ function MainUsers({ data = [] }) {
     const rows = sortedAndFilteredData.map(row =>
       Object.keys(visibleColumns)
         .filter(key => visibleColumns[key] && displayHeaders[key])
-        .map(key => `"${String(row[key]).replace(/"/g, '""')}"`) // Escape double quotes
+        .map(key => {
+          let value = row[key];
+          if (key === 'expiryDate') {
+            value = formatDate(value); // Format date for export
+          } else if (key === 'remainingDays') {
+            value = calculateRemainingDays(row.expiryDate); // Calculate for export
+          } else if (key === 'status') {
+            value = getStatus(calculateRemainingDays(row.expiryDate)); // Calculate for export
+          }
+          return `"${String(value).replace(/"/g, '""')}"`; // Escape double quotes
+        })
         .join(',')
     ).join('\n');
 
@@ -147,7 +175,9 @@ function MainUsers({ data = [] }) {
         fileContent += `User ID: ${user.userId}\n`;
         fileContent += `Name: ${user.name}\n`;
         fileContent += `Plan: ${user.plan}\n`;
-        fileContent += `Status: ${user.status}\n`;
+        fileContent += `Expiry Date: ${formatDate(user.expiryDate)}\n`;
+        fileContent += `Remaining Days: ${calculateRemainingDays(user.expiryDate)}\n`;
+        fileContent += `Status: ${getStatus(calculateRemainingDays(user.expiryDate))}\n`;
         fileContent += '--------------------\n';
       });
       fileName = 'main_users_report.txt';
@@ -168,6 +198,34 @@ function MainUsers({ data = [] }) {
   };
 
   /**
+   * Calculates the remaining days until an expiry date.
+   * @param {string} expiryDateString - The expiry date in 'YYYY-MM-DD' format.
+   * @returns {number|string} The number of remaining days, or 'N/A' if invalid.
+   */
+  const calculateRemainingDays = (expiryDateString) => {
+    if (!expiryDateString || expiryDateString === 'N/A') return 'N/A';
+    const expiry = new Date(expiryDateString);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Normalize today to start of day
+
+    const diffTime = expiry.getTime() - today.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays >= 0 ? diffDays : 0; // Return 0 if date is in the past
+  };
+
+  /**
+   * Determines the status based on remaining days.
+   * @param {number|string} remainingDays - The number of remaining days.
+   * @returns {string} The status ('Active' or 'Inactive').
+   */
+  const getStatus = (remainingDays) => {
+    if (remainingDays === 'N/A' || remainingDays <= 0) {
+      return 'Inactive';
+    }
+    return 'Active';
+  };
+
+  /**
    * Opens the add/edit user form modal.
    * If a user object is passed, it pre-fills the form for editing.
    * Otherwise, it prepares the form for adding a new user.
@@ -184,7 +242,7 @@ function MainUsers({ data = [] }) {
       setPhoneEmail(user.phoneEmail);
       setReferralId(user.referralId === '-' ? '' : user.referralId);
       setPlanType(user.plan);
-      setExpiryDate(user.expiryDate === 'N/A' ? '' : user.expiryDate);
+      setExpiryDate(user.plan === 'Paid' && user.expiryDate !== 'N/A' ? user.expiryDate : ''); // Only set expiryDate if plan is Paid and not N/A
     } else {
       // Reset form fields for a new user.
       setTradingViewId('');
@@ -210,7 +268,13 @@ function MainUsers({ data = [] }) {
    * @param {string} id - The current value of the TradingView ID input.
    */
   const validateTradingViewId = (id) => {
-    setFormErrors(prevErrors => ({ ...prevErrors, tradingViewId: id.trim() ? '' : 'TradingView ID is required.' }));
+    let error = '';
+    if (!id.trim()) {
+      error = 'TradingView ID is required.';
+    } else if (!/^[a-zA-Z0-9]{6}$/.test(id)) { // Must be exactly 6 alphanumeric characters
+      error = 'TradingView ID must be 6 alphanumeric characters.';
+    }
+    setFormErrors(prevErrors => ({ ...prevErrors, tradingViewId: error }));
   };
 
   /**
@@ -218,7 +282,13 @@ function MainUsers({ data = [] }) {
    * @param {string} nameValue - The current value of the name input.
    */
   const validateName = (nameValue) => {
-    setFormErrors(prevErrors => ({ ...prevErrors, name: nameValue.trim() ? '' : 'Name is required.' }));
+    let error = '';
+    if (!nameValue.trim()) {
+      error = 'Name is required.';
+    } else if (nameValue.length > 20) { // Max 20 characters
+      error = 'Name cannot exceed 20 characters.';
+    }
+    setFormErrors(prevErrors => ({ ...prevErrors, name: error }));
   };
 
   /**
@@ -229,15 +299,28 @@ function MainUsers({ data = [] }) {
     let error = '';
     if (!contact.trim()) {
       error = 'Phone/Email is required.';
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contact) && !/^\d{10}$/.test(contact)) {
-      error = 'Must be a valid email or 10-digit phone number.';
+    } else if (!/^\d{10}$/.test(contact) && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contact)) {
+      // If not 10 digits AND not a valid email format
+      error = 'Must be a valid 10-digit phone number or a valid email address.';
     }
     setFormErrors(prevErrors => ({ ...prevErrors, phoneEmail: error }));
   };
 
   /**
-   * Validates the Expiry Date field in real-time for Paid plans.
-   * @param {string} date - The current value of the expiry date input.
+   * Validates the Referral ID field in real-time.
+   * @param {string} id - The current value of the Referral ID input.
+   */
+  const validateReferralId = (id) => {
+    let error = '';
+    if (id.trim() && !/^[a-zA-Z0-9]{6}$/.test(id)) { // If provided, must be exactly 6 alphanumeric characters
+      error = 'Referral ID must be 6 alphanumeric characters.';
+    }
+    setFormErrors(prevErrors => ({ ...prevErrors, referralId: error }));
+  };
+
+  /**
+   * Validates the Expiry Date field in real-time.
+   * @param {string} date - The current value of the expiry date input (YYYY-MM-DD format).
    * @param {string} currentPlanType - The currently selected plan type.
    */
   const validateExpiryDate = (date, currentPlanType) => {
@@ -245,8 +328,13 @@ function MainUsers({ data = [] }) {
     if (currentPlanType === 'Paid') {
       if (!date) {
         error = 'Expiry Date is required for Paid Plan.';
-      } else if (new Date(date) < new Date()) {
-        error = 'Expiry Date cannot be in the past.';
+      } else {
+        const selectedDate = new Date(date);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0); // Normalize today to start of day for accurate comparison
+        if (selectedDate < today) {
+          error = 'Expiry Date cannot be in the past.';
+        }
       }
     }
     setFormErrors(prevErrors => ({ ...prevErrors, expiryDate: error }));
@@ -260,22 +348,54 @@ function MainUsers({ data = [] }) {
     const errors = {};
     if (!tradingViewId.trim()) {
       errors.tradingViewId = 'TradingView ID is required.';
+    } else if (!/^[a-zA-Z0-9]{6}$/.test(tradingViewId)) {
+      errors.tradingViewId = 'TradingView ID must be 6 alphanumeric characters.';
     }
+
     if (!name.trim()) {
       errors.name = 'Name is required.';
+    } else if (name.length > 20) { // Max 20 characters
+      errors.name = 'Name cannot exceed 20 characters.';
     }
+
     if (!phoneEmail.trim()) {
       errors.phoneEmail = 'Phone/Email is required.';
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(phoneEmail) && !/^\d{10}$/.test(phoneEmail)) {
-      errors.phoneEmail = 'Must be a valid email or 10-digit phone number.';
+    } else if (!/^\d{10}$/.test(phoneEmail) && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(phoneEmail)) {
+      errors.phoneEmail = 'Must be a valid 10-digit phone number or a valid email address.';
     }
-    if (planType === 'Paid' && !expiryDate) {
-      errors.expiryDate = 'Expiry Date is required for Paid Plan.';
-    } else if (planType === 'Paid' && expiryDate && new Date(expiryDate) < new Date()) {
-      errors.expiryDate = 'Expiry Date cannot be in the past.';
+
+    if (referralId.trim() && !/^[a-zA-Z0-9]{6}$/.test(referralId)) {
+      errors.referralId = 'Referral ID must be 6 alphanumeric characters.';
+    }
+
+    if (planType === 'Paid') {
+      if (!expiryDate) {
+        errors.expiryDate = 'Expiry Date is required for Paid Plan.';
+      } else {
+        const selectedDate = new Date(expiryDate);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        if (selectedDate < today) {
+          errors.expiryDate = 'Expiry Date cannot be in the past.';
+        }
+      }
     }
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
+  };
+
+  /**
+   * Helper function to generate a random alphanumeric ID of a given length.
+   * @param {number} length - The desired length of the ID.
+   * @returns {string} A random alphanumeric string.
+   */
+  const generateAlphanumericId = (length) => {
+    const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let result = '';
+    for (let i = 0; i < length; i++) {
+      result += characters.charAt(Math.floor(Math.random() * characters.length));
+    }
+    return result;
   };
 
   /**
@@ -289,16 +409,22 @@ function MainUsers({ data = [] }) {
       return;
     }
 
+    const randomName = dummyNames[Math.floor(Math.random() * dummyNames.length)];
+
+    const calculatedExpiryDate = planType === 'Paid' ? expiryDate : 'N/A';
+    const calculatedRemainingDays = planType === 'Paid' ? calculateRemainingDays(expiryDate) : 'N/A';
+    const calculatedStatus = planType === 'Paid' ? getStatus(calculatedRemainingDays) : 'Active'; // Demo users are always active
+
     const newUser = {
-      userId: editUser ? editUser.userId : `USER${Date.now()}`,
+      userId: editUser ? editUser.userId : generateAlphanumericId(6),
       tradingViewId,
-      name,
+      name: randomName, // Assign a random dummy name
       phoneEmail,
       referralId: referralId || '-',
       plan: planType,
-      expiryDate: planType === 'Paid' ? expiryDate : 'N/A',
-      remainingDays: planType === 'Paid' ? Math.ceil((new Date(expiryDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)) : 'N/A',
-      status: 'Active', // Assuming new or updated users are active
+      expiryDate: calculatedExpiryDate,
+      remainingDays: calculatedRemainingDays,
+      status: calculatedStatus,
     };
 
     if (editUser) {
@@ -350,6 +476,23 @@ function MainUsers({ data = [] }) {
     return sortConfig.direction === 'ascending' ? ' ▲' : ' ▼'; // Add a space for visual separation.
   };
 
+  // Helper function to format date to DD/MM/YYYY
+  const formatDate = (dateString) => {
+    if (!dateString || dateString === 'N/A') return 'N/A';
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return 'Invalid Date'; // Handle invalid date strings
+    return date.toLocaleDateString('en-GB'); // Formats to DD/MM/YYYY
+  };
+
+  // Get today's date in YYYY-MM-DD format for min attribute of date input
+  const getMinDate = () => {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = (today.getMonth() + 1).toString().padStart(2, '0');
+    const day = today.getDate().toString().padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
   return (
     <div className="p-4 sm:p-6 lg:p-8 space-y-8 bg-bg-base text-text-base">
       <div className="flex justify-between items-center">
@@ -392,7 +535,7 @@ function MainUsers({ data = [] }) {
             {isColumnToggleOpen && (
               <div
                 id="column-toggle-dropdown"
-                className="absolute top-full right-0 mt-2 bg-card-bg border border-border-base rounded-lg shadow-strong z-10 p-4 min-w-[180px]"
+                className="column-toggle-dropdown-custom" // Using custom class from index.css
               >
                 {/* Map over the keys of visibleColumns state to create checkboxes */}
                 {Object.keys(visibleColumns).map(colKey => (
@@ -426,40 +569,40 @@ function MainUsers({ data = [] }) {
         </div>
 
         {/* Main Users Table */}
-        <table className="min-w-full divide-y divide-border-base">
+        <table className="table-custom divide-y divide-border-base"> {/* Changed from min-w-full to table-custom */}
           <thead className="bg-bg-base">
             <tr>
               {/* Table Headers: Conditionally rendered based on visibleColumns state */}
-              {visibleColumns.userId && <th className="px-6 py-3 text-left text-xs font-medium text-text-light uppercase tracking-wider cursor-pointer" onClick={() => sortData('userId')}>User ID {getSortIcon('userId')}</th>}
-              {visibleColumns.tradingViewId && <th className="px-6 py-3 text-left text-xs font-medium text-text-light uppercase tracking-wider cursor-pointer" onClick={() => sortData('tradingViewId')}>TradingView ID {getSortIcon('tradingViewId')}</th>}
-              {visibleColumns.name && <th className="px-6 py-3 text-left text-xs font-medium text-text-light uppercase tracking-wider cursor-pointer" onClick={() => sortData('name')}>Name {getSortIcon('name')}</th>}
-              {visibleColumns.phoneEmail && <th className="px-6 py-3 text-left text-xs font-medium text-text-light uppercase tracking-wider cursor-pointer" onClick={() => sortData('phoneEmail')}>Phone / Email {getSortIcon('phoneEmail')}</th>}
-              {visibleColumns.referralId && <th className="px-6 py-3 text-left text-xs font-medium text-text-light uppercase tracking-wider cursor-pointer" onClick={() => sortData('referralId')}>Referral ID {getSortIcon('referralId')}</th>}
-              {visibleColumns.plan && <th className="px-6 py-3 text-left text-xs font-medium text-text-light uppercase tracking-wider cursor-pointer" onClick={() => sortData('plan')}>Plan {getSortIcon('plan')}</th>}
-              {visibleColumns.expiryDate && <th className="px-6 py-3 text-left text-xs font-medium text-text-light uppercase tracking-wider cursor-pointer" onClick={() => sortData('expiryDate')}>Expiry Date {getSortIcon('expiryDate')}</th>}
-              {visibleColumns.remainingDays && <th className="px-6 py-3 text-left text-xs font-medium text-text-light uppercase tracking-wider cursor-pointer" onClick={() => sortData('remainingDays')}>Remaining Days {getSortIcon('remainingDays')}</th>}
-              {visibleColumns.status && <th className="px-6 py-3 text-left text-xs font-medium text-text-light uppercase tracking-wider cursor-pointer" onClick={() => sortData('status')}>Status {getSortIcon('status')}</th>}
-              {visibleColumns.actions && <th className="px-6 py-3 text-right text-xs font-medium text-text-light uppercase tracking-wider">Actions</th>}
+              {visibleColumns.userId && <th style={{ width: '150px' }} className="px-6 py-3 text-left text-xs font-medium text-text-light uppercase tracking-wider cursor-pointer table-sticky-col" onClick={() => sortData('userId')}>User ID {getSortIcon('userId')}</th>}
+              {visibleColumns.tradingViewId && <th style={{ width: '150px' }} className="px-6 py-3 text-left text-xs font-medium text-text-light uppercase tracking-wider cursor-pointer" onClick={() => sortData('tradingViewId')}>TradingView ID {getSortIcon('tradingViewId')}</th>}
+              {visibleColumns.name && <th style={{ width: '200px' }} className="px-6 py-3 text-left text-xs font-medium text-text-light uppercase tracking-wider cursor-pointer" onClick={() => sortData('name')}>Name {getSortIcon('name')}</th>}
+              {visibleColumns.phoneEmail && <th style={{ width: '200px' }} className="px-6 py-3 text-left text-xs font-medium text-text-light uppercase tracking-wider cursor-pointer" onClick={() => sortData('phoneEmail')}>Phone / Email {getSortIcon('phoneEmail')}</th>}
+              {visibleColumns.referralId && <th style={{ width: '100px' }} className="px-6 py-3 text-left text-xs font-medium text-text-light uppercase tracking-wider cursor-pointer" onClick={() => sortData('referralId')}>Referral ID {getSortIcon('referralId')}</th>}
+              {visibleColumns.plan && <th style={{ width: '80px' }} className="px-6 py-3 text-left text-xs font-medium text-text-light uppercase tracking-wider cursor-pointer" onClick={() => sortData('plan')}>Plan {getSortIcon('plan')}</th>}
+              {visibleColumns.expiryDate && <th style={{ width: '120px' }} className="px-6 py-3 text-left text-xs font-medium text-text-light uppercase tracking-wider cursor-pointer" onClick={() => sortData('expiryDate')}>Expiry Date {getSortIcon('expiryDate')}</th>}
+              {visibleColumns.remainingDays && <th style={{ width: '100px' }} className="px-6 py-3 text-left text-xs font-medium text-text-light uppercase tracking-wider cursor-pointer" onClick={() => sortData('remainingDays')}>Remaining Days {getSortIcon('remainingDays')}</th>}
+              {visibleColumns.status && <th style={{ width: '100px' }} className="px-6 py-3 text-left text-xs font-medium text-text-light uppercase tracking-wider cursor-pointer" onClick={() => sortData('status')}>Status {getSortIcon('status')}</th>}
+              {visibleColumns.actions && <th style={{ width: '100px' }} className="px-6 py-3 text-right text-xs font-medium text-text-light uppercase tracking-wider">Actions</th>}
             </tr>
           </thead>
           <tbody className="divide-y divide-border-base">
             {/* Map through the sorted and filtered data to render each user row */}
             {sortedAndFilteredData.map((user, index) => (
               <tr key={user.userId || index}>{/* Use userId as key for better performance, fallback to index */}
-                {visibleColumns.userId && <td className="px-6 py-4 whitespace-nowrap text-sm text-text-base">{user.userId}</td>}
+                {visibleColumns.userId && <td className="px-6 py-4 whitespace-nowrap text-sm text-text-base table-sticky-col">{user.userId}</td>} {/* Added table-sticky-col */}
                 {visibleColumns.tradingViewId && <td className="px-6 py-4 whitespace-nowrap text-sm text-text-base">{user.tradingViewId}</td>}
                 {visibleColumns.name && <td className="px-6 py-4 whitespace-nowrap text-sm text-text-base">{user.name}</td>}
                 {visibleColumns.phoneEmail && <td className="px-6 py-4 whitespace-nowrap text-sm text-text-base">{user.phoneEmail}</td>}
                 {visibleColumns.referralId && <td className="px-6 py-4 whitespace-nowrap text-sm text-text-base">{user.referralId || '-'}</td>}
                 {visibleColumns.plan && <td className="px-6 py-4 whitespace-nowrap text-sm text-text-base">{user.plan}</td>}
-                {visibleColumns.expiryDate && <td className="px-6 py-4 whitespace-nowrap text-sm text-text-base">{user.expiryDate}</td>}
-                {visibleColumns.remainingDays && <td className="px-6 py-4 whitespace-nowrap text-sm text-text-base">{user.remainingDays}</td>}
+                {visibleColumns.expiryDate && <td className="px-6 py-4 whitespace-nowrap text-sm text-text-base">{formatDate(user.expiryDate)}</td>}
+                {visibleColumns.remainingDays && <td className="px-6 py-4 whitespace-nowrap text-sm text-text-base">{calculateRemainingDays(user.expiryDate)}</td>}
                 {visibleColumns.status && <td className="px-6 py-4 whitespace-nowrap text-sm text-text-base">
                   {/* Dynamic styling for status based on its value */}
                   <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                    user.status === 'Active' ? 'bg-accent-light text-accent' : 'bg-danger-light text-danger'
+                    getStatus(calculateRemainingDays(user.expiryDate)) === 'Active' ? 'bg-accent-light text-accent' : 'bg-danger-light text-danger'
                   }`}>
-                    {user.status}
+                    {getStatus(calculateRemainingDays(user.expiryDate))}
                   </span>
                 </td>}
                 {visibleColumns.actions && (
@@ -490,8 +633,8 @@ function MainUsers({ data = [] }) {
 
       {/* Add/Edit User Form Modal */}
       {isFormOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-card-bg rounded-lg p-8 shadow-strong max-w-lg w-full relative">
+        <div className="modal"> {/* Changed className to "modal" */}
+          <div className="modal-content"> {/* Changed className to "modal-content" */}
             {/* Close button for the form modal */}
             <button
               onClick={handleCloseForm}
@@ -517,6 +660,7 @@ function MainUsers({ data = [] }) {
                     validateTradingViewId(e.target.value); // Real-time validation
                   }}
                   className={`w-full p-3 border rounded-md bg-bg-base text-text-base focus:ring-primary focus:border-primary outline-none ${formErrors.tradingViewId ? 'border-danger' : 'border-border-base'}`}
+                  maxLength="6" // Added maxLength
                   required
                 />
                 {formErrors.tradingViewId && <p className="text-danger text-xs mt-1">{formErrors.tradingViewId}</p>}
@@ -534,6 +678,7 @@ function MainUsers({ data = [] }) {
                     validateName(e.target.value); // Real-time validation
                   }}
                   className={`w-full p-3 border rounded-md bg-bg-base text-text-base focus:ring-primary focus:border-primary outline-none ${formErrors.name ? 'border-danger' : 'border-border-base'}`}
+                  maxLength="20" // MaxLength updated to 20
                   required
                 />
                 {formErrors.name && <p className="text-danger text-xs mt-1">{formErrors.name}</p>}
@@ -563,9 +708,14 @@ function MainUsers({ data = [] }) {
                   type="text"
                   id="referralId"
                   value={referralId}
-                  onChange={(e) => setReferralId(e.target.value)}
-                  className="w-full p-3 border border-border-base rounded-md bg-bg-base text-text-base focus:ring-primary focus:border-primary outline-none"
+                  onChange={(e) => {
+                    setReferralId(e.target.value);
+                    validateReferralId(e.target.value); // Real-time validation
+                  }}
+                  className={`w-full p-3 border rounded-md bg-bg-base text-text-base focus:ring-primary focus:border-primary outline-none ${formErrors.referralId ? 'border-danger' : 'border-border-base'}`}
+                  maxLength="6" // Added maxLength
                 />
+                {formErrors.referralId && <p className="text-danger text-xs mt-1">{formErrors.referralId}</p>}
               </div>
               <div>
                 <label htmlFor="planType" className="block text-sm font-medium text-text-base mb-1">
@@ -604,6 +754,7 @@ function MainUsers({ data = [] }) {
                       validateExpiryDate(e.target.value, planType); // Real-time validation
                     }}
                     className={`w-full p-3 border rounded-md bg-bg-base text-text-base focus:ring-primary focus:border-primary outline-none ${formErrors.expiryDate ? 'border-danger' : 'border-border-base'}`}
+                    min={getMinDate()} // Set min date to today
                     required={planType === 'Paid'} // Make required only if plan is Paid
                   />
                   {formErrors.expiryDate && <p className="text-danger text-xs mt-1">{formErrors.expiryDate}</p>}
@@ -621,8 +772,8 @@ function MainUsers({ data = [] }) {
 
       {/* Delete Confirmation Modal */}
       {showDeleteConfirm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-card-bg rounded-lg p-8 shadow-strong max-w-sm w-full relative text-center">
+        <div className="modal"> {/* Changed className to "modal" */}
+          <div className="modal-content"> {/* Changed className to "modal-content" */}
             <button
               onClick={cancelDelete}
               className="absolute top-4 right-4 text-text-light hover:text-danger transition-colors"

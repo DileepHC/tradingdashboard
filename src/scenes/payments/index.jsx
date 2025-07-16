@@ -176,7 +176,7 @@ function Payments({ data = [] }) {
     setPaymentRecordFormUpiId(upiId);
     setNewPaymentRecordAmount('');
     setNewPaymentRecordUser('');
-    setNewPaymentRecordDate(new Date().toISOString().split('T')[0]); // Set current date
+    setNewPaymentRecordDate(new Date().toISOString().split('T')[0]); // Set current date by default
     setNewPaymentRecordStatus('Completed'); // Default status
     setNewPaymentRecordFormErrors({});
   };
@@ -188,7 +188,7 @@ function Payments({ data = [] }) {
     setIsAddPaymentRecordFormOpen(false);
     setNewPaymentRecordAmount('');
     setNewPaymentRecordUser('');
-    setNewPaymentRecordDate(new Date().toISOString().split('T')[0]);
+    setNewPaymentRecordDate(new Date().toISOString().split('T')[0]); // Reset to current date on close
     setNewPaymentRecordStatus('Completed');
     setNewPaymentRecordFormErrors({});
   };
@@ -207,6 +207,13 @@ function Payments({ data = [] }) {
     }
     if (!newPaymentRecordDate) {
       errors.date = 'Date is required.';
+    } else {
+      const selectedDate = new Date(newPaymentRecordDate);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0); // Normalize today to start of day for accurate comparison
+      if (selectedDate > today) { // Check if the selected date is in the future
+        errors.date = 'Date cannot be in the future.';
+      }
     }
     setNewPaymentRecordFormErrors(errors);
     return Object.keys(errors).length === 0;
@@ -224,7 +231,7 @@ function Payments({ data = [] }) {
     }
 
     const newRecord = {
-      id: `pay${Date.now()}`, // Unique ID for payment record
+      id: `PAY${Date.now()}`, // Unique ID for payment record, now in capital letters
       upiUsed: paymentRecordFormUpiId,
       user: newPaymentRecordUser,
       amount: parseFloat(newPaymentRecordAmount).toFixed(2),
@@ -325,11 +332,22 @@ function Payments({ data = [] }) {
    * Toggles the visibility of a specific column in the payment history table.
    * @param {string} column - The key of the column to toggle.
    */
-  const handleColumnToggle = (column) => {
+  const handleColumnToggleVisibility = (column) => { // Renamed to avoid conflict with local sortData's handleColumnToggle
     setVisibleColumns(prev => ({
       ...prev,
       [column]: !prev[column], // Toggle the boolean value for the specified column.
     }));
+  };
+
+  /**
+   * Helper function to format date to DD/MM/YYYY.
+   * @param {string} dateString - The date string to format (e.g., 'YYYY-MM-DD').
+   * @returns {string} Formatted date string (DD/MM/YYYY).
+   */
+  const formatDate = (dateString) => {
+    if (!dateString) return '';
+    const [year, month, day] = dateString.split('-');
+    return `${day}/${month}/${year}`;
   };
 
   /**
@@ -359,7 +377,15 @@ function Payments({ data = [] }) {
     const rows = sortedAndFilteredData.map(row =>
       Object.keys(visibleColumns)
         .filter(key => visibleColumns[key] && displayHeaders[key])
-        .map(key => `"${String(row[key]).replace(/"/g, '""')}"`) // Escape double quotes
+        .map(key => {
+          let value = row[key];
+          if (key === 'amount') {
+            value = `₹${parseFloat(value).toFixed(2)}`; // Ensure consistent formatting for export
+          } else if (key === 'date') {
+            value = formatDate(value); // Format date for export
+          }
+          return `"${String(value).replace(/"/g, '""')}"`; // Escape double quotes
+        })
         .join(',')
     ).join('\n');
 
@@ -374,8 +400,8 @@ function Payments({ data = [] }) {
         fileContent += `Payment ID: ${payment.id}\n`;
         fileContent += `UPI Used: ${payment.upiUsed}\n`;
         fileContent += `User: ${payment.user}\n`;
-        fileContent += `Amount: ${payment.amount}\n`;
-        fileContent += `Date: ${payment.date}\n`;
+        fileContent += `Amount: ₹${payment.amount}\n`; // Ensure Rupees symbol for PDF
+        fileContent += `Date: ${formatDate(payment.date)}\n`; // Format date for PDF
         fileContent += `Status: ${payment.status}\n`;
         fileContent += '--------------------\n';
       });
@@ -423,56 +449,79 @@ function Payments({ data = [] }) {
           {/* Section for Adding/Editing New QR Code (inline form) */}
           <div className="border border-border-base rounded-lg p-4 bg-bg-base flex flex-col items-center justify-center text-center">
             <h4 className="font-semibold text-secondary mb-2">{editPaymentMethod ? 'Edit Payment Method' : 'Add New Payment Method'}</h4>
-            {/* QR Code preview area */}
-            <div className="w-32 h-32 border-2 border-dashed border-border-base rounded-lg flex items-center justify-center mb-3">
-              {/* Conditionally display QR image preview or upload icon */}
-              {formQrFile ? (
-                <img src={URL.createObjectURL(formQrFile)} alt="QR Preview" className="max-w-full max-h-full object-contain" />
-              ) : (
-                editPaymentMethod && editPaymentMethod.qrImageUrl ? (
-                  <img src={editPaymentMethod.qrImageUrl} alt="Current QR" className="max-w-full max-h-full object-contain" />
+            <form onSubmit={handlePaymentMethodFormSubmit} className="space-y-4 w-full"> {/* Added w-full here */}
+              {/* QR Code preview area */}
+              <div className="w-32 h-32 border-2 border-dashed border-border-base rounded-lg flex items-center justify-center mb-3 mx-auto"> {/* Added mx-auto for centering */}
+                {/* Conditionally display QR image preview or upload icon */}
+                {formQrFile ? (
+                  <img src={URL.createObjectURL(formQrFile)} alt="QR Preview" className="max-w-full max-h-full object-contain" />
                 ) : (
-                  <Upload className="w-10 h-10 text-text-light" />
-                )
-              )}
-            </div>
-            {/* Input for QR file upload */}
-            <input
-              type="file"
-              accept=".png, .jpg, .jpeg"
-              onChange={(e) => setFormQrFile(e.target.files[0])}
-              className="w-full text-text-base file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-white hover:file:bg-primary-dark cursor-pointer mb-2"
-              aria-label="Upload QR code image"
-            />
-            {formErrors.qrFile && <p className="text-danger text-sm mt-1">{formErrors.qrFile}</p>} {/* QR file error message */}
-            {/* Input for UPI ID */}
-            <input
-              type="text"
-              placeholder="UPI ID (e.g., yourname@upi)"
-              value={formUpiId}
-              onChange={(e) => setFormUpiId(e.target.value)}
-              className={`w-full p-2 border rounded-md bg-bg-card text-text-base focus:ring-primary focus:border-primary outline-none mb-2 ${formErrors.upiId ? 'border-danger' : 'border-border-base'}`}
-              aria-label="UPI ID"
-            />
-            {formErrors.upiId && <p className="text-danger text-sm mt-1">{formErrors.upiId}</p>} {/* UPI ID error message */}
-            {/* Input for Payment Method Tags */}
-            <input
-              type="text"
-              placeholder="Tags (e.g., GPay, Paytm, comma-separated)"
-              value={formPaymentMethodTags}
-              onChange={(e) => setFormPaymentMethodTags(e.target.value)}
-              className="w-full p-2 border border-border-base rounded-md bg-bg-card text-text-base focus:ring-primary focus:border-primary outline-none mb-3"
-              aria-label="Payment method tags"
-            />
-            {/* Button to add/update the new payment method */}
-            <button onClick={handlePaymentMethodFormSubmit} className="action-button-custom w-full">
-              {editPaymentMethod ? 'Update Method' : 'Add Payment Method'}
-            </button>
-            {editPaymentMethod && (
-              <button onClick={resetPaymentMethodForm} className="action-button-custom cancel-button-custom mt-2 w-full">
-                Cancel Edit
-              </button>
-            )}
+                  editPaymentMethod && editPaymentMethod.qrImageUrl ? (
+                    <img src={editPaymentMethod.qrImageUrl} alt="Current QR" className="max-w-full max-h-full object-contain" />
+                  ) : (
+                    <Upload className="w-10 h-10 text-text-light" />
+                  )
+                )}
+              </div>
+              {/* Input for QR file upload */}
+              <div> {/* Wrapped file input in a div for consistent spacing */}
+                <label htmlFor="qrFile" className="block text-sm font-medium text-text-base mb-1">
+                  Upload QR Code (PNG/JPG)
+                </label>
+                <input
+                  type="file"
+                  id="qrFile"
+                  accept=".png, .jpg, .jpeg"
+                  onChange={(e) => setFormQrFile(e.target.files[0])}
+                  className="w-full text-text-base file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-white hover:file:bg-primary-dark cursor-pointer"
+                  aria-label="Upload QR code image"
+                />
+                {formErrors.qrFile && <p className="text-danger text-xs mt-1">{formErrors.qrFile}</p>} {/* QR file error message */}
+              </div>
+              {/* Input for UPI ID */}
+              <div> {/* Wrapped input in a div for consistent spacing */}
+                <label htmlFor="upiId" className="block text-sm font-medium text-text-base mb-1">
+                  UPI ID <span className="text-danger">*</span>
+                </label>
+                <input
+                  type="text"
+                  id="upiId"
+                  placeholder="e.g., yourname@upi"
+                  value={formUpiId}
+                  onChange={(e) => setFormUpiId(e.target.value)}
+                  className={`w-full p-3 border rounded-md bg-bg-base text-text-base focus:ring-primary focus:border-primary outline-none ${formErrors.upiId ? 'border-danger' : 'border-border-base'}`}
+                  aria-label="UPI ID"
+                  required
+                />
+                {formErrors.upiId && <p className="text-danger text-xs mt-1">{formErrors.upiId}</p>} {/* UPI ID error message */}
+              </div>
+              {/* Input for Payment Method Tags */}
+              <div> {/* Wrapped input in a div for consistent spacing */}
+                <label htmlFor="paymentMethodTags" className="block text-sm font-medium text-text-base mb-1">
+                  Tags (Optional, comma-separated)
+                </label>
+                <input
+                  type="text"
+                  id="paymentMethodTags"
+                  placeholder="e.g., GPay, Paytm"
+                  value={formPaymentMethodTags}
+                  onChange={(e) => setFormPaymentMethodTags(e.target.value)}
+                  className="w-full p-3 border border-border-base rounded-md bg-bg-base text-text-base focus:ring-primary focus:border-primary outline-none"
+                  aria-label="Payment method tags"
+                />
+              </div>
+              {/* Button to add/update the new payment method */}
+              <div className="form-actions-custom flex justify-end">
+                <button type="submit" className="action-button-custom">
+                  {editPaymentMethod ? 'Update Method' : 'Add Payment Method'}
+                </button>
+                {editPaymentMethod && (
+                  <button type="button" onClick={resetPaymentMethodForm} className="action-button-custom cancel-button-custom">
+                    Cancel Edit
+                  </button>
+                )}
+              </div>
+            </form>
           </div>
 
           {/* Section for Displaying Active UPI IDs / Payment Methods */}
@@ -546,7 +595,7 @@ function Payments({ data = [] }) {
             {isColumnToggleOpen && (
               <div
                 id="payment-history-column-toggle-dropdown"
-                className="absolute top-full right-0 mt-2 bg-card-bg border border-border-base rounded-lg shadow-strong z-10 p-4 min-w-[150px]"
+                className="column-toggle-dropdown-custom" // Changed from absolute positioning to custom class
               >
                 {/* Map over visibleColumns keys to render checkboxes */}
                 {Object.keys(visibleColumns).map(colKey => (
@@ -554,8 +603,9 @@ function Payments({ data = [] }) {
                     <input
                       type="checkbox"
                       checked={visibleColumns[colKey]}
-                      onChange={() => handleColumnToggle(colKey)}
+                      onChange={() => handleColumnToggleVisibility(colKey)}
                       className="form-checkbox text-primary rounded"
+                      disabled={colKey === 'actions'} // Actions column cannot be hidden
                     />
                     {/* Format column key from camelCase to Title Case */}
                     <span>{colKey.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}</span>
@@ -580,28 +630,28 @@ function Payments({ data = [] }) {
         </div>
 
         {/* Payment History Table */}
-        <table className="min-w-full divide-y divide-border-base">
+        <table className="table-custom divide-y divide-border-base"> {/* Changed from min-w-full to table-custom */}
           <thead className="bg-bg-base">
             <tr>
               {/* Table Headers: Conditionally rendered based on visibleColumns */}
-              {visibleColumns.id && <th className="px-6 py-3 text-left text-xs font-medium text-text-light uppercase tracking-wider cursor-pointer" onClick={() => sortData('id')}>Payment ID {getSortIcon('id')}</th>}
-              {visibleColumns.upiUsed && <th className="px-6 py-3 text-left text-xs font-medium text-text-light uppercase tracking-wider cursor-pointer" onClick={() => sortData('upiUsed')}>UPI Used {getSortIcon('upiUsed')}</th>}
-              {visibleColumns.user && <th className="px-6 py-3 text-left text-xs font-medium text-text-light uppercase tracking-wider cursor-pointer" onClick={() => sortData('user')}>User {getSortIcon('user')}</th>}
-              {visibleColumns.amount && <th className="px-6 py-3 text-left text-xs font-medium text-text-light uppercase tracking-wider cursor-pointer" onClick={() => sortData('amount')}>Amount {getSortIcon('amount')}</th>}
-              {visibleColumns.date && <th className="px-6 py-3 text-left text-xs font-medium text-text-light uppercase tracking-wider cursor-pointer" onClick={() => sortData('date')}>Date {getSortIcon('date')}</th>}
-              {visibleColumns.status && <th className="px-6 py-3 text-left text-xs font-medium text-text-light uppercase tracking-wider cursor-pointer" onClick={() => sortData('status')}>Status {getSortIcon('status')}</th>}
-              {visibleColumns.actions && <th className="px-6 py-3 text-right text-xs font-medium text-text-light uppercase tracking-wider">Actions</th>}
+              {visibleColumns.id && <th style={{ width: '150px' }} className="px-6 py-3 text-left text-xs font-medium text-text-light uppercase tracking-wider cursor-pointer table-sticky-col" onClick={() => sortData('id')}>Payment ID {getSortIcon('id')}</th>}
+              {visibleColumns.upiUsed && <th style={{ width: '200px' }} className="px-6 py-3 text-left text-xs font-medium text-text-light uppercase tracking-wider cursor-pointer" onClick={() => sortData('upiUsed')}>UPI Used {getSortIcon('upiUsed')}</th>}
+              {visibleColumns.user && <th style={{ width: '200px' }} className="px-6 py-3 text-left text-xs font-medium text-text-light uppercase tracking-wider cursor-pointer" onClick={() => sortData('user')}>User {getSortIcon('user')}</th>}
+              {visibleColumns.amount && <th style={{ width: '100px' }} className="px-6 py-3 text-left text-xs font-medium text-text-light uppercase tracking-wider cursor-pointer" onClick={() => sortData('amount')}>Amount {getSortIcon('amount')}</th>}
+              {visibleColumns.date && <th style={{ width: '120px' }} className="px-6 py-3 text-left text-xs font-medium text-text-light uppercase tracking-wider cursor-pointer" onClick={() => sortData('date')}>Date {getSortIcon('date')}</th>}
+              {visibleColumns.status && <th style={{ width: '100px' }} className="px-6 py-3 text-left text-xs font-medium text-text-light uppercase tracking-wider cursor-pointer" onClick={() => sortData('status')}>Status {getSortIcon('status')}</th>}
+              {visibleColumns.actions && <th style={{ width: '150px' }} className="px-6 py-3 text-left text-xs font-medium text-text-light uppercase tracking-wider">Actions</th>} {/* Changed text-right to text-left */}
             </tr>
           </thead>
           <tbody className="divide-y divide-border-base">
             {/* Map through the sorted and filtered data to render each payment row */}
             {sortedAndFilteredData.map((payment, index) => (
               <tr key={payment.id || index}>
-                {visibleColumns.id && <td className="px-6 py-4 whitespace-nowrap text-sm text-text-base">{payment.id}</td>}
+                {visibleColumns.id && <td className="px-6 py-4 whitespace-nowrap text-sm text-text-base table-sticky-col">{payment.id.toUpperCase()}</td>} {/* Display ID in uppercase */}
                 {visibleColumns.upiUsed && <td className="px-6 py-4 whitespace-nowrap text-sm text-text-base">{payment.upiUsed}</td>}
                 {visibleColumns.user && <td className="px-6 py-4 whitespace-nowrap text-sm text-text-base">{payment.user}</td>}
-                {visibleColumns.amount && <td className="px-6 py-4 whitespace-nowrap text-sm text-text-base">{payment.amount}</td>}
-                {visibleColumns.date && <td className="px-6 py-4 whitespace-nowrap text-sm text-text-base">{payment.date}</td>}
+                {visibleColumns.amount && <td className="px-6 py-4 whitespace-nowrap text-sm text-text-base">₹{parseFloat(payment.amount).toFixed(2)}</td>} {/* Ensure single Rupees symbol and 2 decimal places */}
+                {visibleColumns.date && <td className="px-6 py-4 whitespace-nowrap text-sm text-text-base">{formatDate(payment.date)}</td>} {/* Format date to DD/MM/YYYY */}
                 {visibleColumns.status && <td className="px-6 py-4 whitespace-nowrap text-sm text-text-base">
                   {/* Dynamic styling for payment status */}
                   <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
@@ -611,7 +661,7 @@ function Payments({ data = [] }) {
                   </span>
                 </td>}
                 {visibleColumns.actions && (
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-left"> {/* Changed text-right to text-left */}
                     {/* Acknowledge button */}
                     <button
                       onClick={() => handleAcknowledge(payment.id)}
@@ -646,8 +696,9 @@ function Payments({ data = [] }) {
 
       {/* NEW: Add Payment Record Form Modal */}
       {isAddPaymentRecordFormOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-card-bg rounded-lg p-8 shadow-strong max-w-md w-full relative">
+        <div className="modal"> {/* Changed className to "modal" */}
+          <div className="modal-content"> {/* Changed className to "modal-content" */}
+            {/* Close button for the form modal */}
             <button
               onClick={handleCloseAddPaymentRecordForm}
               className="absolute top-4 right-4 text-text-light hover:text-danger transition-colors"
@@ -679,6 +730,7 @@ function Payments({ data = [] }) {
                   value={newPaymentRecordUser}
                   onChange={(e) => setNewPaymentRecordUser(e.target.value)}
                   className={`w-full p-3 border rounded-md bg-bg-base text-text-base focus:ring-primary focus:border-primary outline-none ${newPaymentRecordFormErrors.user ? 'border-danger' : 'border-border-base'}`}
+                  maxLength="20" // Added maxLength for User
                   required
                 />
                 {newPaymentRecordFormErrors.user && <p className="text-danger text-xs mt-1">{newPaymentRecordFormErrors.user}</p>}
@@ -708,6 +760,7 @@ function Payments({ data = [] }) {
                   value={newPaymentRecordDate}
                   onChange={(e) => setNewPaymentRecordDate(e.target.value)}
                   className={`w-full p-3 border rounded-md bg-bg-base text-text-base focus:ring-primary focus:border-primary outline-none ${newPaymentRecordFormErrors.date ? 'border-danger' : 'border-border-base'}`}
+                  max={new Date().toISOString().split('T')[0]} // Set max date to today
                   required
                 />
                 {newPaymentRecordFormErrors.date && <p className="text-danger text-xs mt-1">{newPaymentRecordFormErrors.date}</p>}
@@ -739,8 +792,8 @@ function Payments({ data = [] }) {
 
       {/* Delete Confirmation Modal for Payment History Record */}
       {showPaymentHistoryDeleteConfirm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-card-bg rounded-lg p-8 shadow-strong max-w-sm w-full relative text-center">
+        <div className="modal">
+          <div className="modal-content">
             <button
               onClick={cancelDeletePaymentHistory}
               className="absolute top-4 right-4 text-text-light hover:text-danger transition-colors"
@@ -772,8 +825,8 @@ function Payments({ data = [] }) {
 
       {/* Delete Confirmation Modal for Active Payment Method */}
       {showPaymentMethodDeleteConfirm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-card-bg rounded-lg p-8 shadow-strong max-w-sm w-full relative text-center">
+        <div className="modal">
+          <div className="modal-content">
             <button
               onClick={cancelDeletePaymentMethod}
               className="absolute top-4 right-4 text-text-light hover:text-danger transition-colors"

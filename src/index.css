@@ -61,8 +61,8 @@ html::-webkit-scrollbar {
 
   /* Layout Dimensions */
   --header-height: 70px; /* Define header height as a variable */
-  --sidebar-width: 250px;
-  --sidebar-width-collapsed: 70px;
+  --sidebar-width: 240px; /* Reduced by 10px */
+  --sidebar-width-collapsed: 60px; /* Reduced by 10px */
 
   /* Linear Gradient Colors for Light Theme */
   --gradient-primary: linear-gradient(135deg, #3498db, #2980b9);
@@ -93,7 +93,7 @@ html.dark {
   --shadow-medium: rgba(0, 0, 0, 0.3);
   --shadow-strong: rgba(0, 0, 0, 0.4);
   --bg-hover: #3a475a; /* For general hover backgrounds (dark theme) */
-  
+
 
   /* Linear Gradient Colors for Dark Theme */
   --gradient-primary: linear-gradient(135deg, #66b3ff, #3388ff);
@@ -122,18 +122,19 @@ body {
 }
 
 /* Custom scrollbar for specific elements */
+/* This is for elements that use 'custom-scrollbar' class, like the tabbed display in Indicators */
 .custom-scrollbar::-webkit-scrollbar {
   width: 8px;
   height: 8px; /* For horizontal scrollbars */
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: var(--border-color);
+  background: var(--primary-color); /* Use primary color for better visibility */
   border-radius: 4px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-track {
-  background-color: transparent;
+  background-color: var(--background-color); /* Use background color for track */
 }
 
 
@@ -170,38 +171,49 @@ body {
 }
 
 /* Search bar styling - Exactly as provided by user */
+/* Update your .searchbar-custom and its input */
 .searchbar-custom {
   display: flex;
   align-items: center;
-  background-color: var(--background-color);
-  border-radius: 10px;
-  padding: 8px 15px;
-  flex-grow: 0.5;
-  max-width: 300px;
-  border: 1px solid var(--border-color);
-  box-shadow: inset 0 1px 4px var(--shadow-light);
-  transition: all 0.3s ease;
-}
-
-.searchbar-custom:focus-within {
-  border-color: var(--primary-color);
-  box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2), inset 0 1px 4px var(--shadow-medium);
+  /* Make parent relative for absolute positioning of the icon */
+  position: relative; 
+  background: transparent;
+  border: none;
+  padding: 0;
+  /* Make it slightly wider, e.g., 350px or adjust as needed */
+  max-width: 250px; /* Increased width */
+  width: 100%; /* Ensure it takes full width up to max-width */
 }
 
 .searchbar-custom input {
-  border: none;
-  background: transparent;
+  flex: 1;
+  background: var(--card-background); /* Using CSS variable for background */
+  border: 1px solid var(--border-color); /* Using CSS variable for border color */
+  border-radius: 10px;
+  padding: 8px 15px;
   outline: none;
-  flex-grow: 1;
-  font-size: 0.95em;
-  color: var(--text-color);
-  padding-left: 5px;
+  font-size: 1em;
+  color: var(--text-color); /* Using CSS variable for text color */
+  /* Adjust padding-right to make space for the icon. 
+     Value = icon width + desired padding from right edge */
+  padding-right: 45px; /* Increased padding to ensure text never overlaps */
+  width: 100%; /* Ensure input takes full available width within its flex container */
 }
 
 .searchbar-custom input::placeholder {
   color: var(--light-text-color);
 }
 
+.searchbar-custom .search-icon {
+  /* Position the icon absolutely within the .searchbar-custom container */
+  position: absolute;
+  right: 15px; /* Adjust to align with the padding of the input */
+  width: 20px;
+  height: 20px;
+  color: var(--light-text-color);
+  cursor: pointer;
+  z-index: 1; /* Ensure the icon is above the input text */
+}
 /* User profile styling */
 .user-avatar-custom {
   width: 40px;
@@ -275,7 +287,7 @@ body {
   width: calc(100% - 40px);
   margin: 15px auto 0;
   padding: 10px 15px;
-  background: var(--primary-color); /* Direct color for non-gradient use */
+  background: var(--gradient-primary); /* Changed to gradient-primary */
   color: white;
   border: none;
   border-radius: 8px;
@@ -369,20 +381,21 @@ body {
 .sidebar-menu-item-custom {
   display: flex;
   align-items: center;
-  gap: 12px; /* Consistent spacing for icon and text */
+  gap: 20px; /* Consistent spacing for icon and text */
   width: calc(100% - 20px);
   padding: 12px 15px;
   border-radius: 8px;
-  margin: 0 auto;
+  margin: 5px auto; /* I changed top to 5px */
   margin-bottom: 5px;
-  background-color: var(--sidebarbackground-color);
+  background: var(--sidebarbackground-color); /* Changed to use var directly */
   color: var(--text-color);
   cursor: pointer;
-  font-weight: 500;
+  font-weight: 600;
   transition: background-color 0.2s ease, color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
   position: relative;
   overflow: hidden;
   outline: none; /* Remove default outline */
+  justify-content: flex-start; /* Ensure items start from the left */
 }
 
 .sidebar-menu-item-custom svg {
@@ -394,6 +407,7 @@ body {
 .sidebar-menu-item-custom .menu-text-custom {
   white-space: nowrap;
   flex-grow: 1;
+  text-align: left; /* Ensure text is left-aligned */
 }
 
 .sidebar-menu-item-custom:hover {
@@ -431,7 +445,7 @@ body {
 
 /* Active state for sidebar menu items */
 .sidebar-menu-item-custom.active {
-  background: var(--primary-color); /* Changed to primary color for consistency */
+  background: var(--gradient-secondary); /* Changed to secondary gradient for consistency */
   color: white;
   box-shadow: 0 4px 15px var(--shadow-strong);
   transform: translateX(8px);
@@ -450,7 +464,7 @@ body {
 
 .sidebar-custom.sidebar-collapsed .sidebar-menu-item-custom {
   width: calc(100% - 20px);
-  justify-content: center;
+  justify-content: center; /* Center content when collapsed */
   padding: 12px;
   margin: 0 auto 5px auto;
   border-radius: 8px;
@@ -462,7 +476,7 @@ body {
     Buttons (General Action Buttons)
     =============================== */
 .action-button-custom {
-  background: var(--primary-color);
+  background: var(--gradient-primary); /* Changed to gradient-primary */
   color: white;
   border: none;
   border-radius: 8px;
@@ -590,7 +604,7 @@ body {
     Form Elements (Inputs, Textareas, Selects, Error Messages)
     =============================== */
 .form-group {
-  margin-bottom: 1rem;
+  margin-bottom: 0.75rem; /* Reduced vertical spacing */
 }
 
 .form-label {
@@ -609,7 +623,7 @@ input[type="date"],
 textarea,
 select {
   width: 100%;
-  padding: 12px 15px;
+  padding: 10px 12px; /* Reduced padding */
   border: 1px solid var(--border-color);
   border-radius: 8px;
   background-color: var(--background-color); /* Use background-color for inputs */
@@ -644,7 +658,7 @@ select.is-invalid {
 .form-error {
   color: var(--danger-color);
   font-size: 0.85em;
-  margin-top: 0.25rem;
+  margin-top: 0.15rem; /* Adjusted margin */
 }
 
 /* Checkbox/Toggle Switch base styles (for AuthControl, Settings) */
@@ -680,8 +694,8 @@ input[type="checkbox"].sr-only:checked + div + div {
 .form-actions-custom {
   display: flex;
   justify-content: flex-end;
-  gap: 10px;
-  margin-top: 25px;
+  gap: 8px; /* Reduced gap */
+  margin-top: 20px; /* Reduced margin */
 }
 
 /* New utility class to align content to the right within a container */
@@ -703,67 +717,113 @@ input[type="checkbox"].sr-only:checked + div + div {
 /* ===============================
     Modal
     =============================== */
-.modal-overlay {
+.modal {
   position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.7); /* Slightly darker overlay for better contrast and focus */
-  z-index: 99999; /* HIGHEST Z-INDEX to ensure it's always on top */
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100vh;
+  overflow: auto;
+  background-color: transparent; /* Changed to transparent */
+  z-index: 99999; /* Increased z-index */
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 1rem; /* Padding for mobile view */
-  overflow-y: auto; /* Allow scrolling if modal content is too tall */
+  padding: 0.5rem; /* Slightly reduced padding */
+  pointer-events: none; /* Allow clicks to pass through to content behind */
 }
 
-.modal-content-custom {
-  background: var(--card-background);
+.modal-content {
+  background-color: var(--card-background);
+  padding: 15px;
+  border: 1px solid var(--border-color);
   border-radius: 12px;
-  padding: 30px;
-  box-shadow: 0 10px 30px var(--shadow-strong);
-  max-width: 600px; /* Max width for readability */
-  width: 100%;
-  position: relative; /* For positioning close button */
-  max-height: 90vh; /* Max height to prevent overflow */
-  overflow-y: auto; /* Allow content inside modal to scroll */
+  width: 95%; /* Slightly increased width for better content display */
+  max-width: 450px; /* Adjusted max-width */
+  box-shadow: 0 8px 20px var(--shadow-strong);
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  max-height: 95vh; /* Allow vertical scrolling within the modal */
+  overflow-y: auto; /* Enable vertical scrolling */
+  animation: slideIn 0.3s ease-out;
+  pointer-events: all; /* Re-enable pointer events for the content itself */
 }
 
-.modal-close-button-custom {
+@keyframes slideIn {
+  from {opacity: 0; transform: translate(-50%, -45%);} /* Adjusted starting position for animation */
+  to {opacity: 1; transform: translate(-50%, -50%);}
+}
+
+.close-button {
+  color: var(--light-text-color);
+  font-size: 28px;
+  font-weight: bold;
+  transition: color 0.2s ease-in-out;
+  cursor: pointer;
   position: absolute;
   top: 15px;
-  right: 15px;
-  background: none;
-  border: none;
-  font-size: 1.5em;
-  color: var(--light-text-color);
-  cursor: pointer;
-  transition: color 0.2s ease, transform 0.2s ease;
-  outline: none; /* Remove default outline */
+  right: 20px;
 }
 
-.modal-close-button-custom:hover {
+.close-button:hover,
+.close-button:focus {
   color: var(--danger-color);
-  transform: rotate(90deg);
-}
-.modal-close-button-custom:focus-visible {
-  outline: 2px solid var(--accent-color);
-  outline-offset: 2px;
+  text-decoration: none;
+  cursor: pointer;
 }
 
+.modal h4 {
+  margin-top: 0;
+  border-bottom: 2px solid var(--border-color);
+  padding-bottom: 10px;
+  margin-bottom: 20px;
+  color: var(--secondary-color);
+}
 
 /* ===============================
     Tables (General Table Styling)
     =============================== */
 .table-container-custom {
-  overflow-x: auto; /* Allows horizontal scrolling on small screens */
+  overflow-x: auto; /* Ensures horizontal scrolling if content overflows */
   border-radius: 8px;
   border: 1px solid var(--border-color);
   box-shadow: 0 2px 10px var(--shadow-light);
   background: var(--card-background);
 }
 
+/* Apply scrollbar styling directly to kpi-card-custom which wraps tables */
+/* NOTE: For scrollbars to appear, the content *inside* the container must exceed its width/height.
+   Ensure the table has 'min-width: fit-content;' or similar to force overflow. */
+.kpi-card-custom.overflow-x-auto {
+  scrollbar-width: thin; /* For Firefox */
+  scrollbar-color: var(--primary-color) var(--background-color); /* For Firefox */
+}
+
+/* For Webkit browsers (Chrome, Safari) */
+.kpi-card-custom.overflow-x-auto::-webkit-scrollbar {
+  height: 12px !important; /* Increased height for better visibility */
+  width: 12px !important; /* Ensure vertical scrollbar also has this width */
+}
+
+.kpi-card-custom.overflow-x-auto::-webkit-scrollbar-track {
+  background: var(--background-color) !important; /* Color of the scrollbar track */
+  border-radius: 5px !important;
+}
+
+.kpi-card-custom.overflow-x-auto::-webkit-scrollbar-thumb {
+  background-color: var(--primary-color) !important; /* Color of the scrollbar thumb */
+  border-radius: 5px !important;
+  border: 3px solid var(--background-color) !important; /* Increased border for thicker thumb */
+}
+
+
 .table-custom {
-  width: 100%;
+  width: 100%; /* Ensure table takes full width of its container */
+  min-width: fit-content; /* Ensures table expands to fit all content */
   border-collapse: collapse; /* Removes spacing between table borders */
+  table-layout: auto; /* Changed to auto for better content fitting */
 }
 
 .table-custom thead {
@@ -937,6 +997,144 @@ input[type="checkbox"].sr-only:checked + div + div {
 
 
 /* ===============================
+    AI Assistant Styling
+    =============================== */
+.ai-chat-window { /* Renamed from .ai-assistant-modal-content */
+  display: flex;
+  flex-direction: column;
+  height: 80vh; /* Take up a good portion of the viewport height */
+  max-height: 700px; /* Max height for larger screens */
+  max-width: 700px; /* Max width for larger screens */
+  width: 100%;
+  background: var(--card-background); /* Use CSS var */
+  border-radius: 12px;
+  box-shadow: 0 10px 30px var(--shadow-strong); /* Use CSS var */
+  position: relative;
+  overflow: hidden; /* Hide overflow for rounded corners */
+  border: 1px solid var(--border-color); /* Added border from sx */
+}
+
+/* Header style for AI Assistant modal */
+.ai-chat-window .header { /* New class for the header box */
+  padding: 15px 20px;
+  background: var(--sidebarbackground-color); /* Use sidebar background for header */
+  color: var(--text-color); /* Use text color for header title */
+  font-size: 1.2em;
+  font-weight: 600;
+  border-bottom: 1px solid var(--border-color); /* Use border color from theme */
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.chat-messages { /* Renamed from .ai-assistant-chat-history */
+  flex-grow: 1;
+  padding: 20px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  background-color: var(--background-color); /* Lighter background for chat area */
+  border-bottom: 1px solid var(--border-color); /* Added from sx */
+  -webkit-overflow-scrolling: touch; /* For smooth scrolling on iOS */
+  scrollbar-width: none; /* Hide scrollbar for Firefox */
+}
+
+.chat-messages::-webkit-scrollbar { /* Hide scrollbar for Webkit browsers */
+  display: none;
+}
+
+.message { /* Renamed from .ai-assistant-message */
+  max-width: 80%;
+  padding: 10px 15px;
+  border-radius: 18px;
+  line-height: 1.5;
+  word-wrap: break-word;
+  box-shadow: 0 1px 3px var(--shadow-light); /* Use CSS var */
+  font-size: 0.95em; /* From sx */
+  color: var(--text-color); /* From sx */
+}
+
+.message.user { /* Renamed from .ai-assistant-message.user */
+  align-self: flex-end;
+  background: var(--primary-color); /* Use CSS var */
+  color: white; /* Keep white for contrast */
+  border-bottom-right-radius: 4px; /* Pointed corner for user message */
+}
+
+.message.ai { /* Renamed from .ai-assistant-message.ai */
+  align-self: flex-start;
+  background: var(--card-background); /* Use card background for AI messages */
+  color: var(--text-color); /* Use CSS var */
+  border: 1px solid var(--border-color); /* From sx */
+  border-bottom-left-radius: 4px; /* Pointed corner for AI message */
+}
+
+.chat-input-area { /* Renamed from .ai-assistant-input-container */
+  display: flex;
+  padding: 15px; /* From sx */
+  border-top: 1px solid var(--border-color); /* From sx */
+  background: var(--sidebarbackground-color); /* From sx */
+  gap: 10px;
+  align-items: center;
+}
+
+.chat-input-area input { /* Renamed from .ai-assistant-input */
+  flex-grow: 1;
+  padding: 12px 15px;
+  border: 1px solid var(--border-color); /* From sx */
+  border-radius: 25px; /* Pill shape */
+  background-color: var(--card-background); /* From sx */
+  color: var(--text-color); /* From sx */
+  font-size: 1em;
+  outline: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.chat-input-area input::placeholder { /* Added placeholder style */
+  color: var(--light-text-color);
+  opacity: 1;
+}
+
+.chat-input-area input:focus {
+  border-color: var(--primary-color); /* From sx */
+  box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2); /* From sx */
+}
+
+.chat-input-area button { /* Renamed from .ai-assistant-send-button */
+  background: var(--gradient-accent); /* Green for send action */
+  color: white; /* Keep white for contrast */
+  border: none;
+  border-radius: 50%; /* Circular button */
+  width: 45px;
+  height: 45px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 2px 8px var(--shadow-medium); /* Use CSS var */
+  transition: all 0.2s ease;
+  outline: none;
+}
+
+.chat-input-area button:hover {
+  background-color: #27ae60; /* Darker green on hover */
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px var(--shadow-strong); /* Use CSS var */
+}
+
+.chat-input-area button:focus-visible {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
+}
+
+.chat-input-area button:active {
+  transform: scale(1);
+  box-shadow: 0 2px 8px var(--shadow-medium);
+}
+
+
+/* ===============================
     Responsive Design
     =============================== */
 @media (max-width: 1200px) {
@@ -1034,6 +1232,13 @@ input[type="checkbox"].sr-only:checked + div + div {
   .kpi-cards-custom {
     grid-template-columns: repeat(2, 1fr);
   }
+
+  /* AI Assistant Modal adjustments for smaller screens */
+  .ai-assistant-modal-content {
+    height: 95vh; /* Take up more height on mobile */
+    max-height: unset; /* Remove max height constraint */
+    border-radius: 0; /* Full screen on mobile, no rounded corners */
+  }
 }
 
 @media (max-width: 768px) {
@@ -1056,4 +1261,55 @@ input[type="checkbox"].sr-only:checked + div + div {
   .kpi-cards-custom {
     grid-template-columns: 1fr;
   }
+}
+
+/* New style for column toggle dropdown */
+.column-toggle-dropdown-custom {
+  position: absolute;
+  right: 0;
+  margin-top: 8px; /* Equivalent to mt-2 */
+  width: 192px; /* Equivalent to w-48 */
+  background: var(--card-background);
+  border-radius: 8px;
+  box-shadow: 0 4px 15px var(--shadow-medium);
+  z-index: 250; /* Increased z-index to ensure it's above the header */
+  border: 1px solid var(--border-color);
+  padding: 10px 0;
+  max-height: 200px; /* Limit height and enable scrolling */
+  overflow-y: auto;
+  /* Scrollbar styling for column toggle dropdown */
+  scrollbar-width: thin; /* For Firefox */
+  scrollbar-color: var(--primary-color) var(--background-color); /* For Firefox */
+}
+
+/* For Webkit browsers (Chrome, Safari) */
+.column-toggle-dropdown-custom::-webkit-scrollbar {
+  width: 8px !important; /* Width of the vertical scrollbar */
+  height: 8px !important; /* Height of the horizontal scrollbar */
+}
+
+.column-toggle-dropdown-custom::-webkit-scrollbar-track {
+  background: var(--background-color) !important; /* Color of the scrollbar track */
+  border-radius: 4px !important;
+}
+
+.column-toggle-dropdown-custom::-webkit-scrollbar-thumb {
+  background-color: var(--primary-color) !important; /* Color of the scrollbar thumb */
+  border-radius: 4px !important;
+  border: 2px solid var(--background-color) !important; /* Creates a small border around the thumb */
+}
+
+
+.column-toggle-dropdown-custom label { /* Targeting the individual items within the dropdown */
+  display: flex;
+  align-items: center;
+  padding: 8px 16px; /* Adjust padding for items */
+  font-size: 0.9em;
+  color: var(--text-color);
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.column-toggle-dropdown-custom label:hover {
+  background-color: var(--bg-hover);
 }

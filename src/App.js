@@ -24,10 +24,15 @@ import Logout from './scenes/logout/index.jsx';
 import Profile from './scenes/profile/index.jsx'; // Corrected import path for Profile component
 import AiAssistant from './components/AIAssistant.jsx'; // Corrected import path for AiAssistant component
 
+// NEW: Import SignIn and SignUp components
+import SignIn from './scenes/auth/SignIn.jsx';
+import SignUp from './scenes/auth/SignUp.jsx';
+
 
 function App() {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
-  const [activeModule, setActiveModule] = useState('dashboard'); // Default to 'dashboard'
+  // Set initial activeModule to 'signin'
+  const [activeModule, setActiveModule] = useState('signin');
   const [isAiAssistantOpen, setIsAiAssistantOpen] = useState(false); // New state for AI Assistant modal
 
   // State for Material-UI theme mode: 'light' or 'dark'
@@ -58,44 +63,89 @@ function App() {
 
 
   const renderContent = () => {
-    switch (activeModule) {
-      case 'dashboard':
-        return <Dashboard data={dashboardData} />;
-      case 'indicators':
-        return <Indicators data={dashboardData.indicatorsList} />; // Corrected data prop name
-      case 'pricing-plans':
-        return <PricingPlans data={dashboardData.pricingPlans} />;
-      case 'users':
-      case 'users-main': // Default for Users parent, showing Main Users
-        return <UsersMain data={dashboardData.users.allUsers} />; // Corrected data prop name
-      case 'users-paid':
-        return <UsersPaid data={dashboardData.users.paidSubscribers} />;
-      case 'users-demo':
-        return <UsersDemo data={dashboardData.users.demoSubscribers} />;
-      case 'users-daily':
-        return <UsersDaily data={dashboardData.users.dailyNewSubscribers} />;
-      case 'referrals': // Corrected module name for consistency with Sidebar
-        return <ReferralList data={dashboardData.referralList} />; // Corrected data prop name
-      case 'messages':
-        return <Messages data={dashboardData.messageHistory} />; // Corrected data prop name
-      case 'payments':
-        return <Payments data={dashboardData.paymentHistory} />; // Corrected data prop name
-      case 'settings':
-        return <Settings data={dashboardData.appSettings} />; // Corrected data prop name
-      case 'auth-control':
-        return <AuthControl data={dashboardData.authSettings} />; // Corrected data prop name
-      case 'profile': // Added case for Profile
-        return <Profile data={dashboardData.userProfile} />; // Pass user profile data
-      case 'logout':
-        return <Logout />;
-      // Removed 'ai-assistant' from switch as it will be a modal
-      default:
-        return (
-          <div className="p-8">
-            <h2 className="text-3xl font-bold text-secondary">Welcome</h2>
-            <p className="text-text-base mt-4">Select a module from the sidebar.</p>
+    // NEW: Handle signin and signup modules
+    if (activeModule === 'signin') {
+      return <SignIn setActiveModule={setActiveModule} />;
+    }
+    if (activeModule === 'signup') {
+      return <SignUp setActiveModule={setActiveModule} />;
+    }
+
+    // If not signin/signup, render the main dashboard content
+    return (
+      <>
+        {(() => {
+          switch (activeModule) {
+            case 'dashboard':
+              return <Dashboard data={dashboardData} />;
+            case 'indicators':
+              return <Indicators data={dashboardData.indicators} />;
+            case 'pricing-plans':
+              return <PricingPlans data={dashboardData.pricingPlans} />;
+            case 'users':
+            case 'users-main':
+              return <UsersMain data={dashboardData.users.mainUsers} />;
+            case 'users-paid':
+              return <UsersPaid data={dashboardData.users.paidSubscribers} />;
+            case 'users-demo':
+              return <UsersDemo data={dashboardData.users.demoSubscribers} />;
+            case 'users-daily':
+              return <UsersDaily data={dashboardData.users.dailyNewSubscribers} />;
+            case 'referrals':
+              return <ReferralList data={dashboardData.referrals} />;
+            case 'messages':
+              return <Messages data={dashboardData.messages} />;
+            case 'payments':
+              return <Payments data={dashboardData.payments} />;
+            case 'settings':
+              return <Settings data={dashboardData.settings} />;
+            case 'auth-control':
+              return <AuthControl data={dashboardData.authControl} />;
+            case 'profile':
+              return <Profile data={dashboardData.userProfile || {}} />;
+            case 'logout':
+              // The Logout component will handle the redirection to 'signin' internally
+              return <Logout setActiveModule={setActiveModule} />;
+            default:
+              return (
+                <div className="p-8">
+                  <h2 className="text-3xl font-bold text-secondary">Welcome</h2>
+                  <p className="text-text-base mt-4">Select a module from the sidebar.</p>
+                </div>
+              );
+          }
+        })()}
+      </>
+    );
+  };
+
+  // Conditionally render the main app structure or just the auth pages
+  const renderAppStructure = () => {
+    if (activeModule === 'signin' || activeModule === 'signup') {
+      return renderContent(); // Only render auth content, no sidebar/header
+    } else {
+      return (
+        <div className="flex h-screen overflow-hidden bg-bg-base transition-colors duration-300">
+          <Sidebar isCollapsed={isSidebarCollapsed} setActiveModule={setActiveModule} activeModule={activeModule} />
+          <div className="flex flex-col flex-1 overflow-y-auto">
+            <Header
+              isSidebarCollapsed={isSidebarCollapsed}
+              setIsSidebarCollapsed={setIsSidebarCollapsed}
+              isDarkMode={mode === 'dark'}
+              setIsDarkMode={setIsDarkMode}
+              userName="John Doe"
+              userAvatar="https://placehold.co/40x40/random/white?text=JD"
+              setActiveModule={setActiveModule}
+              setIsAiAssistantOpen={setIsAiAssistantOpen}
+            />
+            <main className="flex-1">
+              {renderContent()}
+            </main>
           </div>
-        );
+          {/* Render the AiAssistant modal conditionally */}
+          <AiAssistant isOpen={isAiAssistantOpen} onClose={() => setIsAiAssistantOpen(false)} />
+        </div>
+      );
     }
   };
 
@@ -103,30 +153,7 @@ function App() {
     // Wrap the entire application with ThemeProvider and CssBaseline
     <ThemeProvider theme={theme}>
       <CssBaseline /> {/* Applies baseline CSS and theme-based styling */}
-      {/* The `dark` class on the html element (managed by useEffect)
-          will control styles from index.css.
-          The CSS variables on the body (managed by CssBaseline)
-          will control Material-UI and Nivo styles. */}
-      <div className="flex h-screen overflow-hidden bg-bg-base transition-colors duration-300">
-        <Sidebar isCollapsed={isSidebarCollapsed} setActiveModule={setActiveModule} activeModule={activeModule} />
-        <div className="flex flex-col flex-1 overflow-y-auto">
-          <Header
-            isSidebarCollapsed={isSidebarCollapsed}
-            setIsSidebarCollapsed={setIsSidebarCollapsed}
-            isDarkMode={mode === 'dark'} // Pass boolean derived from mode
-            setIsDarkMode={setIsDarkMode} // Pass the setIsDarkMode function
-            userName="John Doe"
-            userAvatar="https://placehold.co/40x40/random/white?text=JD"
-            setActiveModule={setActiveModule} // Pass setActiveModule to Header
-            setIsAiAssistantOpen={setIsAiAssistantOpen} // Pass the setter for AI Assistant modal
-          />
-          <main className="flex-1">
-            {renderContent()}
-          </main>
-        </div>
-      </div>
-      {/* Render the AiAssistant modal conditionally */}
-      <AiAssistant isOpen={isAiAssistantOpen} onClose={() => setIsAiAssistantOpen(false)} />
+      {renderAppStructure()}
     </ThemeProvider>
   );
 }

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { User, Camera, Lock, Save, X, KeyRound, Mail, Phone, Info, NotebookPen } from 'lucide-react';
+import { User, Camera, Lock, Save, X, KeyRound, Info } from 'lucide-react'; // Removed Mail, Phone, NotebookPen
 
 /**
  * Profile component for users to view and manage their profile information.
@@ -14,7 +14,7 @@ function Profile({ data = {} }) {
   const [fullName, setFullName] = useState(data.fullName || '');
   const [email, setEmail] = useState(data.email || '');
   const [phoneNumber, setPhoneNumber] = useState(data.phoneNumber || '');
-  const [profilePicture, setProfilePicture] = useState(data.profilePicture || 'https://placehold.co/100x100/random/white?text=User'); // For display
+  const [profilePicture, setProfilePicture] = useState(data.profilePicture || '/assets/John.jpg'); // For display
   const [profilePictureFile, setProfilePictureFile] = useState(null); // For actual file upload
   const [area, setArea] = useState(data.area || '');
   const [notes, setNotes] = useState(data.notes || '');
@@ -32,40 +32,116 @@ function Profile({ data = {} }) {
 
   // Effect to re-initialize profile details if the `data` prop changes
   useEffect(() => {
-    setUsername(data.username || '');
-    setFullName(data.fullName || '');
-    setEmail(data.email || '');
-    setPhoneNumber(data.phoneNumber || '');
-    setProfilePicture(data.profilePicture || 'https://placehold.co/100x100/random/white?text=User');
+    setUsername(data.username ?? '');
+    setFullName(data.fullName ?? '');
+    setEmail(data.email ?? '');
+    setPhoneNumber(data.phoneNumber ?? '');
+    setProfilePicture(data.profilePicture ?? '/assets/John.jpg');
     setProfilePictureFile(null); // Clear file input on data change
-    setArea(data.area || '');
-    setNotes(data.notes || '');
+    setArea(data.area ?? '');
+    setNotes(data.notes ?? '');
     setProfileFormErrors({});
     setShowProfileSaveSuccess(false);
   }, [data]);
 
+  // Effect to clear password fields when component mounts or data changes
+  useEffect(() => {
+    setCurrentPassword('');
+    setNewPassword('');
+    setConfirmPassword('');
+    setPasswordFormErrors({});
+    setShowPasswordSaveSuccess(false);
+  }, [data]); // Depend on data to reset when the profile data itself changes
+
   /**
-   * Validates the profile details form fields.
+   * Real-time validation for Username field.
+   * @param {string} value - The current value of the username input.
+   */
+  const validateUsernameField = (value) => {
+    setProfileFormErrors(prevErrors => ({
+      ...prevErrors,
+      username: value.trim() ? '' : 'Username is required.',
+    }));
+  };
+
+  /**
+   * Real-time validation for Full Name field.
+   * @param {string} value - The current value of the full name input.
+   */
+  const validateFullNameField = (value) => {
+    setProfileFormErrors(prevErrors => ({
+      ...prevErrors,
+      fullName: value.trim() ? '' : 'Full Name is required.',
+    }));
+  };
+
+  /**
+   * Real-time validation for Email field.
+   * @param {string} value - The current value of the email input.
+   */
+  const validateEmailField = (value) => {
+    let error = '';
+    if (!value.trim()) {
+      error = 'Email is required.';
+    } else if (!/\S+@\S+\.\S+/.test(value)) {
+      error = 'Invalid email format.';
+    }
+    setProfileFormErrors(prevErrors => ({ ...prevErrors, email: error }));
+  };
+
+  /**
+   * Real-time validation for Phone Number field.
+   * @param {string} value - The current value of the phone number input.
+   */
+  const validatePhoneNumberField = (value) => {
+    let error = '';
+    // Only validate if a value is entered. If optional and empty, no error.
+    if (value.trim() && !/^\+?[0-9]{10,15}$/.test(value)) {
+      error = 'Invalid phone number format (10-15 digits, optional +).';
+    }
+    setProfileFormErrors(prevErrors => ({ ...prevErrors, phoneNumber: error }));
+  };
+
+  /**
+   * Handles the profile picture file selection and performs real-time validation.
+   * @param {Event} e - The change event from the file input.
+   */
+  const handleProfilePictureChange = (e) => {
+    const file = e.target.files[0];
+    setProfilePictureFile(file); // Set the file object regardless for display
+
+    let error = '';
+    if (file) {
+      const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg'];
+      const maxSize = 2 * 1024 * 1024; // 2 MB
+      if (!allowedTypes.includes(file.type)) {
+        error = 'Only PNG/JPG images are allowed.';
+      } else if (file.size > maxSize) {
+        error = 'Image size cannot exceed 2MB.';
+      }
+    }
+    setProfileFormErrors(prevErrors => ({ ...prevErrors, profilePictureFile: error }));
+  };
+
+  /**
+   * Performs comprehensive validation for profile details form submission.
    * @returns {boolean} True if the form is valid, false otherwise.
    */
-  const validateProfileForm = () => {
+  const validateProfileFormOnSubmit = () => {
     const errors = {};
     if (!username.trim()) errors.username = 'Username is required.';
     if (!fullName.trim()) errors.fullName = 'Full Name is required.';
 
-    // Email validation
     if (!email.trim()) {
       errors.email = 'Email is required.';
     } else if (!/\S+@\S+\.\S+/.test(email)) {
       errors.email = 'Invalid email format.';
     }
 
-    // Phone number validation (simple check for digits and length)
     if (phoneNumber.trim() && !/^\+?[0-9]{10,15}$/.test(phoneNumber)) {
       errors.phoneNumber = 'Invalid phone number format.';
     }
 
-    // Profile picture file validation
     if (profilePictureFile) {
       const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg'];
       const maxSize = 2 * 1024 * 1024; // 2 MB
@@ -87,7 +163,7 @@ function Profile({ data = {} }) {
    */
   const handleProfileSaveChanges = (e) => {
     e.preventDefault();
-    if (!validateProfileForm()) {
+    if (!validateProfileFormOnSubmit()) {
       console.log('Profile form validation failed.');
       return;
     }
@@ -122,7 +198,7 @@ function Profile({ data = {} }) {
     setFullName(data.fullName || '');
     setEmail(data.email || '');
     setPhoneNumber(data.phoneNumber || '');
-    setProfilePicture(data.profilePicture || 'https://placehold.co/100x100/random/white?text=User');
+    setProfilePicture(data.profilePicture || '/assets/John.jpg'); // Revert to initial or default
     setProfilePictureFile(null);
     setArea(data.area || '');
     setNotes(data.notes || '');
@@ -132,10 +208,55 @@ function Profile({ data = {} }) {
   };
 
   /**
-   * Validates the password update form fields.
+   * Real-time validation for Current Password field.
+   * @param {string} value - The current value of the current password input.
+   */
+  const validateCurrentPasswordField = (value) => {
+    setPasswordFormErrors(prevErrors => ({
+      ...prevErrors,
+      currentPassword: value.trim() ? '' : 'Current password is required.',
+    }));
+  };
+
+  /**
+   * Real-time validation for New Password field.
+   * @param {string} value - The current value of the new password input.
+   */
+  const validateNewPasswordField = (value) => {
+    let error = '';
+    if (!value.trim()) {
+      error = 'New password is required.';
+    } else if (value.length < 8) {
+      error = 'New password must be at least 8 characters long.';
+    } else if (!/[A-Z]/.test(value) || !/[a-z]/.test(value) || !/[0-9]/.test(value) || !/[!@#$%^&*]/.test(value)) {
+      error = 'Password must include uppercase, lowercase, number, and special character.';
+    }
+    setPasswordFormErrors(prevErrors => ({ ...prevErrors, newPassword: error }));
+    // Also re-validate confirm password if new password changes
+    if (confirmPassword.trim() && value !== confirmPassword) {
+      setPasswordFormErrors(prevErrors => ({ ...prevErrors, confirmPassword: 'Passwords do not match.' }));
+    } else if (confirmPassword.trim() && value === confirmPassword) {
+      setPasswordFormErrors(prevErrors => ({ ...prevErrors, confirmPassword: '' }));
+    }
+  };
+
+  /**
+   * Real-time validation for Confirm New Password field.
+   * @param {string} value - The current value of the confirm password input.
+   * @param {string} newPassValue - The current value of the new password input.
+   */
+  const validateConfirmPasswordField = (value, newPassValue) => {
+    setPasswordFormErrors(prevErrors => ({
+      ...prevErrors,
+      confirmPassword: value === newPassValue ? '' : 'Passwords do not match.',
+    }));
+  };
+
+  /**
+   * Performs comprehensive validation for password update form submission.
    * @returns {boolean} True if the form is valid, false otherwise.
    */
-  const validatePasswordForm = () => {
+  const validatePasswordFormOnSubmit = () => {
     const errors = {};
     if (!currentPassword.trim()) errors.currentPassword = 'Current password is required.';
     if (!newPassword.trim()) {
@@ -158,7 +279,7 @@ function Profile({ data = {} }) {
    */
   const handleChangePassword = (e) => {
     e.preventDefault();
-    if (!validatePasswordForm()) {
+    if (!validatePasswordFormOnSubmit()) {
       console.log('Password form validation failed.');
       return;
     }
@@ -210,23 +331,7 @@ function Profile({ data = {} }) {
               type="file"
               id="profilePictureUpload"
               accept=".png, .jpg, .jpeg"
-              onChange={(e) => {
-                const file = e.target.files[0];
-                setProfilePictureFile(file);
-                // Validate file immediately to show errors
-                const errors = {};
-                if (file) {
-                  const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg'];
-                  const maxSize = 2 * 1024 * 1024; // 2 MB
-                  if (!allowedTypes.includes(file.type)) {
-                    errors.profilePictureFile = 'Only PNG/JPG images are allowed.';
-                  }
-                  if (file.size > maxSize) {
-                    errors.profilePictureFile = 'Image size cannot exceed 2MB.';
-                  }
-                }
-                setProfileFormErrors(prev => ({ ...prev, profilePictureFile: errors.profilePictureFile }));
-              }}
+              onChange={handleProfilePictureChange}
               className="hidden"
             />
             {profilePictureFile && <p className="text-xs text-text-light mt-2">Selected: {profilePictureFile.name}</p>}
@@ -242,7 +347,10 @@ function Profile({ data = {} }) {
                 type="text"
                 id="username"
                 value={username}
-                onChange={(e) => setUsername(e.target.value)}
+                onChange={(e) => {
+                  setUsername(e.target.value);
+                  validateUsernameField(e.target.value);
+                }}
                 className={`w-full p-3 border rounded-md bg-bg-base text-text-base focus:ring-primary focus:border-primary outline-none ${profileFormErrors.username ? 'border-danger' : 'border-border-base'}`}
                 required
               />
@@ -256,7 +364,10 @@ function Profile({ data = {} }) {
                 type="text"
                 id="fullName"
                 value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
+                onChange={(e) => {
+                  setFullName(e.target.value);
+                  validateFullNameField(e.target.value);
+                }}
                 className={`w-full p-3 border rounded-md bg-bg-base text-text-base focus:ring-primary focus:border-primary outline-none ${profileFormErrors.fullName ? 'border-danger' : 'border-border-base'}`}
                 required
               />
@@ -270,7 +381,10 @@ function Profile({ data = {} }) {
                 type="email"
                 id="email"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  validateEmailField(e.target.value);
+                }}
                 className={`w-full p-3 border rounded-md bg-bg-base text-text-base focus:ring-primary focus:border-primary outline-none ${profileFormErrors.email ? 'border-danger' : 'border-border-base'}`}
                 required
               />
@@ -284,7 +398,10 @@ function Profile({ data = {} }) {
                 type="tel"
                 id="phoneNumber"
                 value={phoneNumber}
-                onChange={(e) => setPhoneNumber(e.target.value)}
+                onChange={(e) => {
+                  setPhoneNumber(e.target.value);
+                  validatePhoneNumberField(e.target.value);
+                }}
                 className={`w-full p-3 border rounded-md bg-bg-base text-text-base focus:ring-primary focus:border-primary outline-none ${profileFormErrors.phoneNumber ? 'border-danger' : 'border-border-base'}`}
               />
               {profileFormErrors.phoneNumber && <p className="text-danger text-xs mt-1">{profileFormErrors.phoneNumber}</p>}
@@ -345,7 +462,10 @@ function Profile({ data = {} }) {
               type="password"
               id="currentPassword"
               value={currentPassword}
-              onChange={(e) => setCurrentPassword(e.target.value)}
+              onChange={(e) => {
+                setCurrentPassword(e.target.value);
+                validateCurrentPasswordField(e.target.value);
+              }}
               className={`w-full p-3 border rounded-md bg-bg-base text-text-base focus:ring-primary focus:border-primary outline-none ${passwordFormErrors.currentPassword ? 'border-danger' : 'border-border-base'}`}
               required
             />
@@ -359,7 +479,10 @@ function Profile({ data = {} }) {
               type="password"
               id="newPassword"
               value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
+              onChange={(e) => {
+                setNewPassword(e.target.value);
+                validateNewPasswordField(e.target.value);
+              }}
               className={`w-full p-3 border rounded-md bg-bg-base text-text-base focus:ring-primary focus:border-primary outline-none ${passwordFormErrors.newPassword ? 'border-danger' : 'border-border-base'}`}
               required
             />
@@ -373,7 +496,10 @@ function Profile({ data = {} }) {
               type="password"
               id="confirmPassword"
               value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
+              onChange={(e) => {
+                setConfirmPassword(e.target.value);
+                validateConfirmPasswordField(e.target.value, newPassword);
+              }}
               className={`w-full p-3 border rounded-md bg-bg-base text-text-base focus:ring-primary focus:border-primary outline-none ${passwordFormErrors.confirmPassword ? 'border-danger' : 'border-border-base'}`}
               required
             />

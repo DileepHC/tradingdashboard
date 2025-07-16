@@ -8,6 +8,7 @@ import { localPoint } from '@visx/event';
 import { withTooltip, TooltipWithBounds } from '@visx/tooltip';
 import { max } from 'd3-array';
 import { ParentSize } from '@visx/responsive';
+import { Text } from '@visx/text'; // Import Text component for axis labels
 
 import { Box, Typography, useTheme } from "@mui/material";
 import { tokens } from "../theme";
@@ -29,10 +30,6 @@ function BarChartContent({ width, height, title, showTooltip, hideTooltip, toolt
   const primaryDark = colors.primary?.[400] ?? '#424242';
   const barColor = colors.greenAccent?.[500] ?? '#66bb6a'; // Using a green accent for bars
 
-  // Moved conditional return from here.
-  // The ParentSize component ensures width/height are valid before rendering this.
-
-  // --- FIX APPLIED HERE ---
   // Ensure effective dimensions are non-negative by using Math.max(0, ...)
   const chartWidth = Math.max(0, width - MARGIN.left - MARGIN.right);
   const chartHeight = Math.max(0, height - MARGIN.top - MARGIN.bottom);
@@ -61,11 +58,13 @@ function BarChartContent({ width, height, title, showTooltip, hideTooltip, toolt
   // Tooltip event handlers
   const handleMouseMove = useCallback(
     (event, datum) => {
+      // Get coordinates relative to the SVG
       const coords = localPoint(event.target.ownerSVGElement, event);
+
       showTooltip({
         tooltipData: datum,
-        tooltipLeft: coords.x,
-        tooltipTop: coords.y,
+        tooltipLeft: coords.x, // Use direct SVG x-coordinate for tooltip positioning
+        tooltipTop: coords.y,  // Use direct SVG y-coordinate for tooltip positioning
       });
     },
     [showTooltip]
@@ -114,10 +113,20 @@ function BarChartContent({ width, height, title, showTooltip, hideTooltip, toolt
           tickStroke={neutralDark}
           tickLabelProps={() => ({
             fill: neutralDark,
-            fontSize: 11,
+            fontSize: 10, // Reduced font size
             textAnchor: 'middle',
           })}
         />
+        {/* X-Axis Label */}
+        <Text
+          x={chartWidth / 2}
+          y={chartHeight + 40} // Position below the x-axis ticks
+          fill={neutralDark}
+          textAnchor="middle"
+          fontSize={12} // Reduced font size
+        >
+          Months
+        </Text>
 
         {/* Y-Axis */}
         <AxisLeft
@@ -127,11 +136,22 @@ function BarChartContent({ width, height, title, showTooltip, hideTooltip, toolt
           tickStroke={neutralDark}
           tickLabelProps={() => ({
             fill: neutralDark,
-            fontSize: 11,
+            fontSize: 10, // Reduced font size
             textAnchor: 'end',
           })}
           tickFormat={(value) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(value)}
         />
+        {/* Y-Axis Label */}
+        <Text
+          x={-MARGIN.left + 15} // Position to the left of the y-axis
+          y={chartHeight / 2}
+          fill={neutralDark}
+          textAnchor="middle"
+          fontSize={12} // Reduced font size
+          transform={`rotate(-90, ${-MARGIN.left + 15}, ${chartHeight / 2})`} // Rotate for vertical label
+        >
+          Commission (INR)
+        </Text>
       </Group>
 
       {/* Tooltip */}
@@ -145,14 +165,21 @@ function BarChartContent({ width, height, title, showTooltip, hideTooltip, toolt
             borderRadius: '8px',
             padding: '8px',
             boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
-            transform: 'translate(-50%, -100%)', // Adjust tooltip position
+            transform: 'translate(-50%, -100%)', // Adjust tooltip position to be above the point
           }}
         >
-          <div>
-            <strong>Month:</strong> {getMonth(tooltipData)}
+          {/* Display x and y values in the tooltip, similar to AreaChart.jsx */}
+          <div style={{ display: 'flex', alignItems: 'center' }}>
+            <span style={{ width: '10px', height: '10px', backgroundColor: barColor, borderRadius: '50%', marginRight: '8px' }}></span>
+            <span>
+              <strong style={{ color: 'white' }}>Month:</strong> {getMonth(tooltipData)}
+            </span>
           </div>
-          <div>
-            <strong>Commission:</strong> {new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(getCommission(tooltipData))}
+          <div style={{ display: 'flex', alignItems: 'center' }}>
+            <span style={{ width: '10px', height: '10px', backgroundColor: barColor, borderRadius: '50%', marginRight: '8px' }}></span>
+            <span>
+              <strong style={{ color: 'white' }}>Commission:</strong> {new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(getCommission(tooltipData))}
+            </span>
           </div>
         </TooltipWithBounds>
       )}

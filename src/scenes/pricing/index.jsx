@@ -221,8 +221,9 @@ function PricingPlans({ data = [] }) {
       </div>
 
       {isFormOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-card-bg rounded-lg p-8 shadow-strong max-w-lg w-full relative">
+        <div className="modal"> {/* Changed className to "modal" */}
+          <div className="modal-content"> {/* Changed className to "modal-content" */}
+            {/* Close button for the form modal */}
             <button
               onClick={handleCloseForm}
               className="absolute top-4 right-4 text-text-light hover:text-danger transition-colors"
@@ -298,7 +299,7 @@ function PricingPlans({ data = [] }) {
                   className="w-full p-3 border border-border-base rounded-md bg-bg-base text-text-base focus:ring-primary focus:border-primary outline-none"
                 />
               </div>
-              <div className="form-actions-custom">
+              <div className="form-actions-custom flex justify-end"> {/* Added flex justify-end */}
                 <button type="submit" className="action-button-custom">
                   {editPlan ? 'Update Plan' : 'Add Plan'}
                 </button>

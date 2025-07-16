@@ -7,14 +7,23 @@ import {
   ClipboardList,
   Mail,
   CreditCard,
-  Settings, // Re-import Settings for sidebar
-  LogOut, // Re-import LogOut for sidebar
-  Shield, // Re-import Shield for Auth Control
+  Settings,
+  LogOut,
+  Shield,
   ChevronRight,
   ChevronDown,
-  User // User icon for Profile (though Profile remains in Header)
+  // Removed 'User' as it is not used in this component, addressing ESLint warning.
 } from 'lucide-react';
 
+/**
+ * Sidebar component for the trading dashboard application.
+ * Manages navigation, including a collapsible state and a sub-menu for 'Users'.
+ *
+ * @param {object} props - Component props.
+ * @param {boolean} props.isCollapsed - Determines if the sidebar is collapsed or expanded.
+ * @param {function} props.setActiveModule - Function to set the active module in the main application.
+ * @param {string} props.activeModule - The currently active module, used for highlighting menu items.
+ */
 function Sidebar({ isCollapsed, setActiveModule, activeModule }) {
   // State to control the visibility of the 'Users' sub-menu
   const [isUsersSubMenuOpen, setIsUsersSubMenuOpen] = React.useState(false);
@@ -22,13 +31,17 @@ function Sidebar({ isCollapsed, setActiveModule, activeModule }) {
   /**
    * Handles clicks on sidebar menu items.
    * Sets the active module in the main application.
-   * Closes the 'Users' sub-menu if a non-user related module is clicked.
+   * Closes the 'Users' sub-menu if a non-user related module is clicked,
+   * ensuring that sub-menus don't remain open unnecessarily.
+   *
    * @param {string} moduleName - The identifier of the module being clicked.
    */
   const handleModuleClick = (moduleName) => {
     setActiveModule(moduleName);
-    // If the clicked module is not 'users' or a sub-item of 'users', close the sub-menu.
-    // Ensure activeModule is a string before calling startsWith
+    // If the clicked module is not 'users' itself AND is not a sub-item of 'users',
+    // then close the 'Users' sub-menu to keep the UI clean.
+    // The `String(activeModule).startsWith('users-')` check ensures that if we're already
+    // in a sub-user module and click another non-user module, the sub-menu closes.
     if (moduleName !== 'users' && !(activeModule && String(activeModule).startsWith('users-'))) {
       setIsUsersSubMenuOpen(false);
     }
@@ -36,12 +49,15 @@ function Sidebar({ isCollapsed, setActiveModule, activeModule }) {
 
   /**
    * Toggles the visibility of the 'Users' sub-menu.
+   * This function is called when the 'Users' main menu item is clicked.
    */
   const handleUsersSubMenuToggle = () => {
     setIsUsersSubMenuOpen(!isUsersSubMenuOpen);
   };
 
-  // Define the main menu items for the sidebar
+  // Define the main menu items for the sidebar.
+  // Each item has a name, an icon, and a module identifier that corresponds
+  // to the 'activeModule' state in App.js.
   const menuItems = [
     { name: 'Dashboard', icon: LayoutDashboard, module: 'dashboard' },
     { name: 'Indicators', icon: TrendingUp, module: 'indicators' },
@@ -52,59 +68,67 @@ function Sidebar({ isCollapsed, setActiveModule, activeModule }) {
       module: 'users',
       hasSubMenu: true, // Indicates this item has a sub-menu
       subMenu: [ // Sub-menu items for 'Users'
-        { name: 'All Users', module: 'users-main' },
+        { name: 'Main Users', module: 'users-main' }, // Changed from 'All Users' to 'Main Users'
         { name: 'Paid Subscribers', module: 'users-paid' },
         { name: 'Demo Subscribers', module: 'users-demo' },
-        { name: 'Daily Paid / Daily Demo', module: 'users-daily' },
+        { name: 'Daily Paid/Demo', module: 'users-daily' },
       ]
     },
-    { name: 'Referral List', icon: ClipboardList, module: 'referrals' }, // Corrected module name for consistency
+    { name: 'Referral List', icon: ClipboardList, module: 'referrals' },
     { name: 'Messages', icon: Mail, module: 'messages' },
     { name: 'Payments', icon: CreditCard, module: 'payments' },
     // Profile is intentionally NOT here, as it's exclusively in the Header dropdown
   ];
 
-  // Define menu items that appear at the bottom of the sidebar (e.g., settings, logout)
+  // Define menu items that appear at the bottom of the sidebar (e.g., settings, logout).
+  // These are typically separated for clearer UI organization.
   const bottomMenuItems = [
-    { name: 'Settings', icon: Settings, module: 'settings' }, // Settings is here
-    { name: 'Auth Control', icon: Shield, module: 'auth-control', adminOnly: true }, // Auth Control is here
-    { name: 'Logout', icon: LogOut, module: 'logout' }, // Logout is here
+    { name: 'Settings', icon: Settings, module: 'settings' },
+    { name: 'Auth Control', icon: Shield, module: 'auth-control', adminOnly: true }, // 'adminOnly' is a descriptive prop, not functional here
+    { name: 'Logout', icon: LogOut, module: 'logout' },
   ];
 
   return (
-    // Use 'sidebar-collapsed' class directly as per CSS definition
+    // The 'sidebar-custom' class defines the base styles for the sidebar.
+    // The 'sidebar-collapsed' class is conditionally applied to handle the collapsed state,
+    // which is styled in index.css to hide text and adjust layout.
     <aside className={`sidebar-custom ${isCollapsed ? 'sidebar-collapsed' : ''}`}>
-      {/* Company Logo section - now uses an image and aligns with the header height */}
-      <div className="sidebar-header-top"> {/* 'sidebar-header-top' class handles height and alignment */}
+      {/* Company Logo section. The 'sidebar-header-top' class ensures consistent height
+          and vertical alignment with the main header. */}
+      <div className="sidebar-header-top">
         <img
-          src="/assets/Company logo.jpg" // Placeholder for your Company Logo
+          src="/assets/Company logo.jpg" // Path to your company logo as per project structure
           alt="Company Logo"
-          className="max-h-full w-auto object-contain" // Ensures image scales within the div without overflow, maintaining aspect ratio
-          // Fallback if image fails to load
+          className="max-h-full w-auto object-contain" // Ensures the image scales within its container
+          // Fallback if the image fails to load, displaying a placeholder
           onError={(e) => { e.target.onerror = null; e.target.src="https://placehold.co/150x70/gray/white?text=Logo"; }}
         />
       </div>
 
-      {/* Main Navigation Menu section */}
-      {/* Apply custom scrollbar and mobile responsive menu styles */}
+      {/* Main Navigation Menu section.
+          'flex-1' allows it to take available vertical space.
+          'overflow-y-auto' enables vertical scrolling if content exceeds height.
+          'custom-scrollbar' and 'sidebar-menu-custom' apply custom scrollbar and menu item styles. */}
       <nav className="flex-1 overflow-y-auto custom-scrollbar sidebar-menu-custom">
         <ul>
           {menuItems.map((item) => (
+            // Using React.Fragment to group list item and its sub-menu without adding extra DOM nodes
             <React.Fragment key={item.module}>
               <li>
                 <button
+                  // On click, either toggle the sub-menu (for 'Users') or set the active module
                   onClick={() => item.module === 'users' ? handleUsersSubMenuToggle() : handleModuleClick(item.module)}
-                  // Dynamically apply 'active' class if the current module is active, or if it's the 'Users' parent
-                  // and any 'users-' sub-module is currently active.
-                  // Added checks for activeModule to prevent 'startsWith' on undefined.
+                  // Dynamically apply 'active' class for styling.
+                  // An item is 'active' if its module matches 'activeModule', OR
+                  // if it's a parent with a sub-menu ('Users') AND any of its sub-modules are active.
                   className={`sidebar-menu-item-custom ${activeModule === item.module || (item.hasSubMenu && activeModule && String(activeModule).startsWith('users-')) ? 'active' : ''}`}
                 >
-                  {/* Render the icon for the menu item */}
-                  {/* 'gap' property in CSS now controls spacing, so 'mr-3' is correctly removed */}
+                  {/* Render the icon for the menu item. 'w-5 h-5' sets a consistent size. */}
                   <item.icon className={`w-5 h-5`} />
-                  {/* Render the menu item text only if the sidebar is not collapsed */}
+                  {/* Render the menu item text only if the sidebar is not collapsed. */}
                   {!isCollapsed && <span className="flex-1 menu-text-custom">{item.name}</span>}
-                  {/* Render sub-menu toggle icon if it has a sub-menu and is not collapsed */}
+                  {/* Render sub-menu toggle icon (ChevronDown/ChevronRight) if it has a sub-menu
+                      and the sidebar is not collapsed. 'ml-auto' pushes it to the right. */}
                   {item.hasSubMenu && !isCollapsed && (
                     isUsersSubMenuOpen ? (
                       <ChevronDown className="w-4 h-4 ml-auto" /> // Down arrow if sub-menu is open
@@ -114,19 +138,20 @@ function Sidebar({ isCollapsed, setActiveModule, activeModule }) {
                   )}
                 </button>
               </li>
+              {/* Conditionally render the sub-menu if it exists, is open, and sidebar is not collapsed */}
               {item.hasSubMenu && isUsersSubMenuOpen && !isCollapsed && (
                 <ul className="ml-8 mt-1 space-y-1 border-l border-border-base"> {/* Indented sub-menu with left border */}
                   {item.subMenu.map((subItem) => (
                     <li key={subItem.module}>
                       <button
                         onClick={() => handleModuleClick(subItem.module)}
-                        // Apply active state for the individual sub-menu item
+                        // Apply active state for the individual sub-menu item.
                         className={`flex items-center w-full py-2 px-4 rounded-lg text-left text-sm
                           hover:bg-bg-base transition-colors duration-200
                           ${activeModule === subItem.module ? 'bg-primary text-white' : 'text-text-base'}`}
                       >
-                        {/* Ensure Material Symbols font is loaded in index.html for this icon */}
-                        <span className="material-symbols-outlined text-xs mr-3">arrow_right</span> {/* Small arrow icon for sub-items */}
+                        {/* Material Symbols icon for sub-items. 'text-xs mr-3' for small size and spacing. */}
+                        <span className="material-symbols-outlined text-xs mr-3">arrow_right</span>
                         {subItem.name}
                       </button>
                     </li>
@@ -138,8 +163,9 @@ function Sidebar({ isCollapsed, setActiveModule, activeModule }) {
         </ul>
       </nav>
 
-      {/* Bottom Navigation Menu (Settings, Logout) section */}
-      <nav className="mt-auto pt-4 border-t border-border-base"> {/* Separator line and top margin */}
+      {/* Bottom Navigation Menu (Settings, Logout) section.
+          'mt-auto' pushes it to the bottom, 'pt-4 border-t' adds a separator. */}
+      <nav className="mt-auto pt-4 border-t border-border-base">
         <ul>
           {bottomMenuItems.map((item) => (
             <li key={item.module}>
@@ -147,8 +173,9 @@ function Sidebar({ isCollapsed, setActiveModule, activeModule }) {
                 onClick={() => handleModuleClick(item.module)}
                 className={`sidebar-menu-item-custom ${activeModule === item.module ? 'active' : ''}`}
               >
-                {/* 'gap' property in CSS now controls spacing, so 'mr-3' is correctly removed */}
+                {/* Icon for bottom menu items. */}
                 <item.icon className={`w-5 h-5`} />
+                {/* Text for bottom menu items, hidden if collapsed. */}
                 {!isCollapsed && <span className="flex-1 menu-text-custom">{item.name}</span>}
               </button>
             </li>

@@ -147,8 +147,10 @@ function Header({ isSidebarCollapsed, setIsSidebarCollapsed, isDarkMode, setIsDa
             className="flex items-center space-x-2 p-1 rounded-full hover:bg-bg-base transition-colors duration-300"
             aria-label="User profile menu"
           >
-            {/* Using userAvatar prop for the image source */}
-            <img src={userAvatar} alt="User Avatar" className="user-avatar-custom" />
+            {/* Updated src to point to John.jpg from public/assets */}
+            <img src="/assets/John.jpg" alt="User Avatar" className="user-avatar-custom" 
+                 onError={(e) => { e.target.onerror = null; e.target.src="https://placehold.co/40x40/random/white?text=JD"; }}
+            />
             <span className="text-secondary font-medium hidden md:block">{userName}</span>
             <ChevronDown className="w-4 h-4 text-text-light" />
           </button>
